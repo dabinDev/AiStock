@@ -26,8 +26,13 @@ SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="更新 data 目录下的最新东方财富短线数据")
-    parser.add_argument("--date", help="指定日期，格式支持 YYYY-MM-DD 或 YYYYMMDD；默认使用北京时间今天")
+    parser = argparse.ArgumentParser(description="更新 data 目录下的东方财富短线数据")
+    parser.add_argument("--date", help="指定日期，支持 YYYY-MM-DD 或 YYYYMMDD；默认使用北京时间今天")
+    parser.add_argument(
+        "--skip-if-non-trading-day",
+        action="store_true",
+        help="如果目标日期不是 A 股交易日，则直接跳过并返回成功",
+    )
     return parser.parse_args()
 
 
@@ -42,6 +47,25 @@ def normalize_date(value: str) -> date:
 
 def today_in_shanghai() -> date:
     return datetime.now(SHANGHAI_TZ).date()
+
+
+def is_sse_trading_day(target_date: date) -> bool:
+    try:
+        import pandas_market_calendars as mcal
+
+        calendar = mcal.get_calendar("SSE")
+        schedule = calendar.schedule(
+            start_date=target_date.isoformat(),
+            end_date=target_date.isoformat(),
+        )
+        return not schedule.empty
+    except Exception as exc:  # pragma: no cover
+        fallback = target_date.weekday() < 5
+        print(
+            f"警告：未能使用 SSE 交易日历判断（{exc}），回退为工作日判断：{target_date} -> {fallback}",
+            file=sys.stderr,
+        )
+        return fallback
 
 
 def load_skill_module():
@@ -212,6 +236,7 @@ def generate_highest_board_artifacts(data_dir: Path) -> tuple[Path, Path, Path]:
         "Microsoft YaHei",
         "SimHei",
         "Noto Sans CJK SC",
+        "Noto Sans CJK JP",
         "Source Han Sans SC",
         "WenQuanYi Zen Hei",
     ]
@@ -317,6 +342,10 @@ def generate_highest_board_artifacts(data_dir: Path) -> tuple[Path, Path, Path]:
 def main() -> int:
     args = parse_args()
     target_date = normalize_date(args.date) if args.date else today_in_shanghai()
+
+    if args.skip_if_non_trading_day and not is_sse_trading_day(target_date):
+        print(f"目标日期 {target_date} 不是 A 股交易日，已跳过更新。")
+        return 0
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 

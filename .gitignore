@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Local IDE / workspace
+.idea/
+.obsidian/workspace.json
+data/.obsidian/workspace.json
+
+# Common OS files
+.DS_Store
+Thumbs.db
