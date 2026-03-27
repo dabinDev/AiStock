@@ -1,0 +1,60 @@
+name: Update Eastmoney Shortline Data
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_date:
+        description: "可选，指定抓取日期，格式 YYYY-MM-DD"
+        required: false
+        type: string
+  schedule:
+    - cron: "30 8 * * 1-5"
+
+permissions:
+  contents: write
+
+jobs:
+  update-shortline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install playwright matplotlib
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
+
+      - name: Run updater
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          if [ -n "${{ github.event.inputs.target_date }}" ]; then
+            python scripts/update_data_latest.py --date "${{ github.event.inputs.target_date }}"
+          else
+            python scripts/update_data_latest.py
+          fi
+
+      - name: Commit and push if changed
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "chore(data): update eastmoney shortline $(date -u +%F)"
+          git push
