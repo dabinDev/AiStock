@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>A股复盘交易台</title>
+  <style>
+    :root {
+      --bg: #0f1722;
+      --panel: rgba(12, 20, 32, 0.92);
+      --panel-2: rgba(17, 27, 42, 0.92);
+      --line: rgba(122, 148, 182, 0.22);
+      --line-strong: rgba(122, 148, 182, 0.4);
+      --text: #e7eef7;
+      --muted: #8fa2ba;
+      --accent: #f2543d;
+      --accent-2: #23a0c8;
+      --good: #36c187;
+      --warn: #ffb84d;
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
+      --mono: "Consolas", "SFMono-Regular", "Microsoft YaHei UI", monospace;
+      --sans: "Microsoft YaHei UI", "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: var(--sans);
+      background:
+        radial-gradient(circle at top left, rgba(242, 84, 61, 0.16), transparent 24%),
+        radial-gradient(circle at top right, rgba(35, 160, 200, 0.16), transparent 22%),
+        linear-gradient(180deg, #071019 0%, #0f1722 48%, #0b121d 100%);
+    }
+    .shell {
+      width: min(1680px, calc(100vw - 28px));
+      margin: 14px auto 24px;
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 16px;
+    }
+    .panel {
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+    .sidebar {
+      position: sticky;
+      top: 14px;
+      height: fit-content;
+      padding: 16px;
+    }
+    .brand {
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(135deg, rgba(242, 84, 61, 0.16), transparent 56%),
+        linear-gradient(180deg, rgba(20, 31, 48, 0.96), rgba(10, 17, 28, 0.96));
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .brand h1 {
+      margin: 14px 0 0;
+      font-size: 32px;
+      line-height: 1.05;
+      letter-spacing: .02em;
+    }
+    .brand p {
+      margin: 12px 0 0;
+      color: var(--muted);
+      line-height: 1.75;
+      font-size: 13px;
+    }
+    .section {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .section h3 {
+      margin: 0 0 6px;
+      font-size: 15px;
+    }
+    .section p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    label {
+      display: block;
+      margin: 12px 0 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(4, 10, 18, 0.7);
+      color: var(--text);
+      padding: 11px 12px;
+      font: inherit;
+    }
+    .tag-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .tag {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 13px;
+      transition: all .18s ease;
+      user-select: none;
+    }
+    .tag:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+    .tag.active {
+      color: #fff5f2;
+      border-color: rgba(242, 84, 61, 0.55);
+      background: linear-gradient(180deg, rgba(242, 84, 61, 0.34), rgba(242, 84, 61, 0.18));
+    }
+    .button-grid, .single-grid, .prompt-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .single-grid {
+      max-height: 240px;
+      overflow: auto;
+    }
+    .prompt-actions {
+      grid-template-columns: repeat(3, 1fr);
+      margin-top: 10px;
+    }
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 12px;
+      cursor: pointer;
+      color: var(--text);
+      font: inherit;
+      transition: transform .16s ease, opacity .16s ease, box-shadow .16s ease;
+    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22); }
+    button:active { transform: translateY(0); }
+    .btn-primary { background: linear-gradient(180deg, #ff694f, #cf3f2b); }
+    .btn-secondary { background: linear-gradient(180deg, #2eb8df, #177e9f); }
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--line);
+    }
+    .progress-board {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .progress-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(3, 9, 16, 0.5);
+    }
+    .pill {
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      white-space: nowrap;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+    }
+    .pill.pending { background: rgba(255, 255, 255, 0.06); color: var(--muted); }
+    .pill.queued, .pill.running, .pill.reading, .pill.analyzing { background: rgba(35, 160, 200, 0.18); color: #86dfff; }
+    .pill.completed { background: rgba(54, 193, 135, 0.18); color: #7eecbe; }
+    .pill.failed { background: rgba(242, 84, 61, 0.18); color: #ff9e8f; }
+    .pill.skipped { background: rgba(255, 184, 77, 0.16); color: #ffd28a; }
+    .main {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 16px;
+    }
+    .hero {
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 14px;
+    }
+    .hero-copy, .hero-metrics {
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(6, 12, 20, 0.58);
+    }
+    .hero-copy {
+      padding: 18px;
+      background:
+        linear-gradient(135deg, rgba(242, 84, 61, 0.16), transparent 54%),
+        linear-gradient(180deg, rgba(7, 12, 20, 0.8), rgba(10, 16, 27, 0.82));
+    }
+    .hero-copy h2 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.08;
+    }
+    .hero-copy p {
+      margin: 12px 0 0;
+      color: var(--muted);
+      line-height: 1.75;
+      font-size: 14px;
+    }
+    .hero-metrics {
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .metric {
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .metric .label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .metric .value {
+      margin-top: 8px;
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .metric .sub {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .toolbar {
+      padding: 0 18px 18px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+    }
+    .toolbar-box {
+      padding: 15px 16px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(6, 12, 20, 0.65);
+    }
+    .toolbar-title {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .toolbar-title strong {
+      font-size: 19px;
+    }
+    .toolbar-sub {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .status-text.ok { color: #7eecbe; }
+    .status-text.running { color: #86dfff; }
+    .workspace {
+      padding: 0 18px 18px;
+      display: grid;
+      grid-template-columns: 0.92fr 1.08fr;
+      gap: 16px;
+      min-height: 860px;
+    }
+    .workspace-left, .workspace-right {
+      display: grid;
+      gap: 16px;
+      min-height: 0;
+    }
+    .workspace-left {
+      grid-template-rows: 360px 1fr;
+    }
+    .workspace-right {
+      grid-template-rows: 390px 1fr;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(6, 12, 20, 0.72);
+      overflow: hidden;
+      min-height: 0;
+    }
+    .card-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+    }
+    .card-head h3 {
+      margin: 0;
+      font-size: 15px;
+    }
+    .card-head p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .card-body {
+      padding: 14px;
+      height: calc(100% - 73px);
+      min-height: 0;
+    }
+    .scroll {
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(3, 8, 14, 0.76);
+      padding: 14px;
+    }
+    .text-view {
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.72;
+      font-size: 13px;
+      font-family: var(--mono);
+    }
+    .text-editor {
+      width: 100%;
+      height: 100%;
+      resize: none;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(3, 8, 14, 0.76);
+      color: var(--text);
+      padding: 14px;
+      line-height: 1.72;
+      font-size: 13px;
+      font-family: var(--mono);
+    }
+    .dataset {
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(122, 148, 182, 0.16);
+    }
+    .dataset:first-child { padding-top: 0; }
+    .dataset:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+    .dataset-head {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .dataset-title {
+      font-weight: 700;
+      color: #f4f7fb;
+    }
+    .dataset-meta {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .dataset-body {
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(122, 148, 182, 0.12);
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.72;
+      font-size: 13px;
+      font-family: var(--mono);
+    }
+    .empty {
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    @media (max-width: 1320px) {
+      .shell { grid-template-columns: 1fr; }
+      .sidebar { position: static; }
+      .hero, .workspace { grid-template-columns: 1fr; }
+      .workspace-left, .workspace-right { grid-template-rows: auto auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="panel sidebar">
+      <section class="brand">
+        <div class="eyebrow">Trading Desk</div>
+        <h1>短线复盘<br>交易台</h1>
+        <p>左侧负责日期、标签、抓取与 Kimi 解析，右侧只保留 AI 工作流需要的三类结果：标签数据、提示词和解析结论。</p>
+      </section>
+
+      <section class="section">
+        <h3>交易日</h3>
+        <p>默认加载最近已有数据日期，也支持直接切换输入。</p>
+        <label for="tradeDate">交易日期</label>
+        <input id="tradeDate" />
+      </section>
+
+      <section class="section">
+        <h3>页面标签</h3>
+        <p>这里只负责选中标签。抓取与解析按钮分离，进度只跟随当前选中标签显示。</p>
+        <div id="targetTags" class="tag-grid"></div>
+        <div class="button-grid">
+          <button class="btn-ghost" onclick="selectAllTargets(true)">全选标签</button>
+          <button class="btn-ghost" onclick="selectAllTargets(false)">清空标签</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <h3>抓取操作</h3>
+        <p>支持抓取全部、抓取所选，或单独抓取某个标签。</p>
+        <div class="button-grid">
+          <button class="btn-primary" onclick="fetchTargets('all')">抓取全部页面</button>
+          <button class="btn-secondary" onclick="fetchTargets('selected')">抓取所选标签</button>
+        </div>
+        <div id="singleButtons" class="single-grid"></div>
+      </section>
+
+      <section class="section">
+        <h3>Kimi 解析</h3>
+        <p>密钥会保存在当前浏览器本地，下次打开自动带出。</p>
+        <label for="kimiKey">Kimi API Key</label>
+        <input id="kimiKey" type="password" placeholder="可留空，优先读取环境变量 MOONSHOT_API_KEY" />
+        <label for="kimiModel">Kimi 模型</label>
+        <input id="kimiModel" value="%DEFAULT_MODEL%" />
+        <div class="button-grid">
+          <button class="btn-secondary" onclick="analyzeTargets('all')">Kimi 全量解析</button>
+          <button class="btn-secondary" onclick="analyzeTargets('selected')">解析所选标签</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <h3>逐项进度</h3>
+        <p>根据当前标签选择动态展示抓取或解析状态。</p>
+        <div id="progressBoard" class="progress-board"></div>
+      </section>
+    </aside>
+
+    <main class="main">
+      <section class="panel hero">
+        <div class="hero-copy">
+          <h2>统一汇总竞价、指数、盘中异动、涨停结构、量能、复盘与板块强度，并直接送入 AI 推演链</h2>
+          <p>板块轮动固定抓取前 20 天板块强度数据。工作区不再展示原始文件面板，只专注于标签数据、可编辑提示词和最终解析。</p>
+        </div>
+        <div class="hero-metrics">
+          <div class="metric">
+            <div class="label">当前日期</div>
+            <div class="value" id="metricDate">-</div>
+            <div class="sub">当前分析上下文绑定的交易日</div>
+          </div>
+          <div class="metric">
+            <div class="label">已抓取标签</div>
+            <div class="value" id="metricAvailable">0</div>
+            <div class="sub">当前日期下已有数据的标签数量</div>
+          </div>
+          <div class="metric">
+            <div class="label">选中标签</div>
+            <div class="value" id="metricTargets">0</div>
+            <div class="sub">抓取与解析的目标集合</div>
+          </div>
+          <div class="metric">
+            <div class="label">任务状态</div>
+            <div class="value" id="metricStatus">待机</div>
+            <div class="sub">任务执行时会同步更新</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="toolbar">
+        <div class="toolbar-box">
+          <div class="toolbar-title">
+            <strong id="currentDate">-</strong>
+            <span id="statusText" class="status-text">等待操作</span>
+          </div>
+          <div class="toolbar-sub">抓取完成后更新标签数据；解析完成后更新提示词与 AI 结论。提示词支持复制、编辑后重新询问。</div>
+        </div>
+        <div>
+          <button class="btn-ghost" onclick="refreshState()">刷新状态</button>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="workspace-left">
+          <section class="card">
+            <div class="card-head">
+              <h3>AI 标签数据获取结果</h3>
+              <p>只显示当前抓取或当前分析对应的标签数据，不展示站点来源信息。</p>
+            </div>
+            <div class="card-body">
+              <div id="targetData" class="scroll">
+                <div class="empty">尚未抓取数据。执行抓取后，这里会按所选标签展示数据内容。</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-head">
+              <h3>任务日志</h3>
+              <p>抓取与解析的过程日志。</p>
+            </div>
+            <div class="card-body">
+              <div class="scroll text-view" id="jobLog">任务日志会显示在这里</div>
+            </div>
+          </section>
+        </div>
+
+        <div class="workspace-right">
+          <section class="card">
+            <div class="card-head">
+              <h3>AI 提示词</h3>
+              <p>支持点击复制，也支持你直接修改后重新发起询问。</p>
+            </div>
+            <div class="card-body">
+              <textarea id="promptEditor" class="text-editor">尚未生成 AI 提示词。</textarea>
+              <div class="prompt-actions">
+                <button class="btn-ghost" onclick="copyPrompt()">复制提示词</button>
+                <button class="btn-ghost" onclick="resetPrompt()">恢复原提示词</button>
+                <button class="btn-secondary" onclick="reanalyzeWithEditedPrompt()">修改后重新询问</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-head">
+              <h3>AI 解析结果</h3>
+              <p>展示 Kimi 的结构化复盘输出。</p>
+            </div>
+            <div class="card-body">
+              <div class="scroll text-view" id="analysisContent">尚未生成 AI 解析结果。</div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const TARGETS = %TARGETS_JSON%;
+    const DEFAULT_MODEL = "%DEFAULT_MODEL%";
+    const STORAGE_KEYS = {
+      kimiKey: "kanpan.kimi.key",
+      kimiModel: "kanpan.kimi.model"
+    };
+    const STATUS_TEXT = {
+      pending: "待执行",
+      queued: "排队中",
+      running: "抓取中",
+      reading: "整理中",
+      analyzing: "解析中",
+      completed: "已完成",
+      failed: "失败",
+      skipped: "跳过"
+    };
+
+    let state = {
+      dates: [],
+      currentDate: "",
+      availableTargets: []
+    };
+    let selectedTargets = new Set(Object.keys(TARGETS));
+    let activeJobId = "";
+    let jobTimer = null;
+    let lastPrompt = "";
+    let lastAnalyzeTargets = [];
+
+    function setStatus(text, ok = false, running = false) {
+      const el = document.getElementById("statusText");
+      el.textContent = text;
+      el.className = "status-text" + (running ? " running" : ok ? " ok" : "");
+      document.getElementById("metricStatus").textContent = running ? "运行中" : ok ? "完成" : text;
+    }
+
+    function selectedTargetList(mode) {
+      if (mode === "all") return Object.keys(TARGETS);
+      return Array.from(selectedTargets);
+    }
+
+    function updateMetrics() {
+      document.getElementById("metricDate").textContent = state.currentDate || "-";
+      document.getElementById("metricAvailable").textContent = String((state.availableTargets || []).length);
+      document.getElementById("metricTargets").textContent = String(selectedTargets.size);
+      document.getElementById("currentDate").textContent = state.currentDate || "-";
+    }
+
+    function renderTags() {
+      const root = document.getElementById("targetTags");
+      root.innerHTML = "";
+      Object.entries(TARGETS).forEach(([key, meta]) => {
+        const tag = document.createElement("div");
+        tag.className = "tag" + (selectedTargets.has(key) ? " active" : "");
+        tag.textContent = meta.label;
+        tag.onclick = () => {
+          if (selectedTargets.has(key)) {
+            selectedTargets.delete(key);
+          } else {
+            selectedTargets.add(key);
+          }
+          renderTags();
+          renderProgress();
+          updateMetrics();
+        };
+        root.appendChild(tag);
+      });
+    }
+
+    function renderSingleButtons() {
+      const root = document.getElementById("singleButtons");
+      root.innerHTML = "";
+      Object.entries(TARGETS).forEach(([key, meta]) => {
+        const btn = document.createElement("button");
+        btn.className = "btn-ghost";
+        btn.textContent = "抓取 " + meta.label;
+        btn.onclick = () => fetchTargets("single", [key]);
+        root.appendChild(btn);
+      });
+    }
+
+    function renderProgress(statuses = null) {
+      const root = document.getElementById("progressBoard");
+      root.innerHTML = "";
+      const keys = Array.from(selectedTargets);
+      if (!keys.length) {
+        root.innerHTML = '<div class="empty">当前未选择任何标签。</div>';
+        return;
+      }
+      keys.forEach((key) => {
+        const item = document.createElement("div");
+        item.className = "progress-item";
+
+        const label = document.createElement("div");
+        label.textContent = TARGETS[key].label;
+
+        const pill = document.createElement("div");
+        const raw = statuses && statuses[key] ? statuses[key] : "pending";
+        pill.className = "pill " + raw;
+        pill.textContent = STATUS_TEXT[raw] || raw;
+
+        item.appendChild(label);
+        item.appendChild(pill);
+        root.appendChild(item);
+      });
+    }
+
+    function selectAllTargets(enabled) {
+      selectedTargets = enabled ? new Set(Object.keys(TARGETS)) : new Set();
+      renderTags();
+      renderProgress();
+      updateMetrics();
+    }
+
+    function renderTargetData(items) {
+      const root = document.getElementById("targetData");
+      if (!items || !items.length) {
+        root.innerHTML = '<div class="empty">当前没有可展示的标签数据。</div>';
+        return;
+      }
+      root.innerHTML = items.map((item) => {
+        const body = item.exists === "true"
+          ? escapeHtml(item.content || "该标签文件为空。")
+          : "当前标签尚未生成数据。";
+        const meta = item.exists === "true" ? item.file : "未抓取";
+        return `
+          <section class="dataset">
+            <div class="dataset-head">
+              <div class="dataset-title">${escapeHtml(item.label)}</div>
+              <div class="dataset-meta">${escapeHtml(meta)}</div>
+            </div>
+            <div class="dataset-body">${body}</div>
+          </section>
+        `;
+      }).join("");
+    }
+
+    function setPromptContent(text) {
+      lastPrompt = text || "";
+      document.getElementById("promptEditor").value = text || "尚未生成 AI 提示词。";
+    }
+
+    function setAnalysisContent(text) {
+      document.getElementById("analysisContent").textContent = text || "尚未生成 AI 解析结果。";
+    }
+
+    function saveCredentials() {
+      localStorage.setItem(STORAGE_KEYS.kimiKey, document.getElementById("kimiKey").value);
+      localStorage.setItem(STORAGE_KEYS.kimiModel, document.getElementById("kimiModel").value);
+    }
+
+    function restoreCredentials() {
+      const savedKey = localStorage.getItem(STORAGE_KEYS.kimiKey);
+      const savedModel = localStorage.getItem(STORAGE_KEYS.kimiModel);
+      if (savedKey !== null) {
+        document.getElementById("kimiKey").value = savedKey;
+      }
+      if (savedModel) {
+        document.getElementById("kimiModel").value = savedModel;
+      }
+    }
+
+    async function refreshState(dateOverride = "") {
+      const qs = dateOverride ? "?date=" + encodeURIComponent(dateOverride) : "";
+      const res = await fetch("/api/state" + qs);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "加载状态失败");
+      state = data;
+      document.getElementById("tradeDate").value = state.currentDate;
+      if (!activeJobId) setStatus("状态已刷新", true);
+      updateMetrics();
+    }
+
+    async function postJson(url, payload) {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "请求失败");
+      return data;
+    }
+
+    async function fetchTargets(mode, manualTargets = []) {
+      const date = document.getElementById("tradeDate").value.trim();
+      const targets = manualTargets.length ? manualTargets : selectedTargetList(mode);
+      if (!targets.length) {
+        setStatus("请先选择抓取目标");
+        return;
+      }
+      setStatus("正在抓取：" + targets.join(", "), false, true);
+      document.getElementById("jobLog").textContent = "任务已提交，等待日志...";
+      renderProgress(Object.fromEntries(targets.map((item) => [item, "queued"])));
+      try {
+        const data = await postJson("/api/fetch", { date, targets });
+        followJob(data.job_id, date);
+      } catch (err) {
+        setStatus(String(err));
+      }
+    }
+
+    async function analyzeTargets(mode, promptOverride = "") {
+      saveCredentials();
+      const date = document.getElementById("tradeDate").value.trim();
+      let targets = selectedTargetList(mode);
+      if (mode === "all") {
+        targets = Object.keys(TARGETS);
+      }
+      if (!targets.length) {
+        setStatus("请先选择解析目标");
+        return;
+      }
+      lastAnalyzeTargets = [...targets];
+      setStatus("Kimi 解析中：" + targets.join(", "), false, true);
+      document.getElementById("jobLog").textContent = "任务已提交，等待日志...";
+      renderProgress(Object.fromEntries(targets.map((item) => [item, "queued"])));
+      try {
+        const data = await postJson("/api/analyze", {
+          date,
+          targets,
+          api_key: document.getElementById("kimiKey").value.trim(),
+          model: document.getElementById("kimiModel").value.trim() || DEFAULT_MODEL,
+          prompt_override: promptOverride
+        });
+        followJob(data.job_id, date);
+      } catch (err) {
+        setStatus(String(err));
+      }
+    }
+
+    async function reanalyzeWithEditedPrompt() {
+      const prompt = document.getElementById("promptEditor").value.trim();
+      if (!prompt || prompt === "尚未生成 AI 提示词。") {
+        setStatus("当前没有可重发的提示词");
+        return;
+      }
+      const targets = lastAnalyzeTargets.length ? lastAnalyzeTargets : Array.from(selectedTargets);
+      if (!targets.length) {
+        setStatus("请先选择解析目标");
+        return;
+      }
+      await analyzeTargets("selected", prompt);
+    }
+
+    async function followJob(jobId, date) {
+      activeJobId = jobId;
+      if (jobTimer) clearInterval(jobTimer);
+
+      const poll = async () => {
+        try {
+          const res = await fetch("/api/job?id=" + encodeURIComponent(jobId));
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "任务查询失败");
+
+          document.getElementById("jobLog").textContent = (data.logs || []).join("\n");
+          renderProgress(data.target_statuses || {});
+          setStatus(
+            data.title + " / " + (data.status === "running" ? "执行中" : data.status),
+            data.status === "completed",
+            data.status === "running"
+          );
+
+          if (data.status !== "running") {
+            clearInterval(jobTimer);
+            jobTimer = null;
+            activeJobId = "";
+            await refreshState(date);
+
+            if (data.result) {
+              if (data.result.target_data) {
+                renderTargetData(data.result.target_data);
+              }
+              if (data.type === "analyze") {
+                setPromptContent(data.result.prompt || "");
+                setAnalysisContent(data.result.analysis || (data.status === "failed" ? "AI 解析失败，请查看任务日志后重试。" : ""));
+              }
+            }
+
+            if (data.status === "failed") {
+              setStatus(data.error || "任务失败");
+            }
+          }
+        } catch (err) {
+          clearInterval(jobTimer);
+          jobTimer = null;
+          activeJobId = "";
+          setStatus(String(err));
+          renderProgress();
+        }
+      };
+
+      await poll();
+      jobTimer = setInterval(poll, 1000);
+    }
+
+    async function copyPrompt() {
+      const text = document.getElementById("promptEditor").value;
+      if (!text || text === "尚未生成 AI 提示词。") {
+        setStatus("当前没有可复制的提示词");
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        setStatus("提示词已复制", true);
+      } catch {
+        setStatus("复制失败，请检查浏览器权限");
+      }
+    }
+
+    function resetPrompt() {
+      document.getElementById("promptEditor").value = lastPrompt || "尚未生成 AI 提示词。";
+      setStatus("提示词已恢复", true);
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    document.getElementById("kimiKey").addEventListener("input", saveCredentials);
+    document.getElementById("kimiModel").addEventListener("input", saveCredentials);
+
+    restoreCredentials();
+    renderTags();
+    renderSingleButtons();
+    renderProgress();
+    updateMetrics();
+    refreshState().catch((err) => setStatus(String(err)));
+  </script>
+</body>
+</html>

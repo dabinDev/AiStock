@@ -1,0 +1,7 @@
+interface:
+  display_name: "市场总览导出"
+  short_description: "统一抓取多页面行情数据并生成分析入口"
+  default_prompt: "Use $market-overview-exporter to fetch the selected market pages and build a clickable analysis dashboard."
+
+policy:
+  allow_implicit_invocation: true
