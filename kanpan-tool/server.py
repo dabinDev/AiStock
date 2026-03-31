@@ -30,8 +30,8 @@ INDEX_HTML = BUNDLE_ROOT / "kanpan-tool" / "index.html"
 CONFIG_ROOT = APP_ROOT / ".local-config"
 SETTINGS_FILE = CONFIG_ROOT / "terminal-settings.json"
 DEFAULT_PORT = 8765
-DEFAULT_MODEL = "kimi-k2-5"
-KIMI_BASE_URL = "https://api.moonshot.cn/v1/chat/completions"
+DEFAULT_MODEL = "kimi-k2.5"
+KIMI_BASE_URL = "https://api.moonshot.ai/v1/chat/completions"
 
 ANALYSIS_FRAMEWORK = """
 分析框架要求：
@@ -473,7 +473,15 @@ def call_kimi(api_key: str, model: str, prompt: str) -> str:
             response.raise_for_status()
             data = response.json()
             return data["choices"][0]["message"]["content"]
-        except Exception as exc:  # pragma: no cover
+        except requests.HTTPError as exc:  
+            response_text = ""
+            if exc.response is not None:
+                response_text = exc.response.text.strip()
+            detail = f"HTTP {exc.response.status_code}: {response_text}" if exc.response is not None and response_text else str(exc)
+            last_error = RuntimeError(detail)
+            if attempt == 2:
+                break
+        except Exception as exc:  
             last_error = exc
             if attempt == 2:
                 break

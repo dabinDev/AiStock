@@ -320,9 +320,13 @@ def launch_browser(playwright):
     errors: list[str] = []
     for name, launcher in attempts:
         try:
-            return launcher()
+            print(f"[尝试] 启动 {name}...")
+            browser = launcher()
+            print(f"[成功] 使用 {name} 启动浏览器")
+            return browser
         except PlaywrightError as exc:
             errors.append(f"{name}: {exc}")
+            print(f"[失败] {name}: {exc}")
     raise SystemExit("无法启动浏览器，请先安装 Edge/Chrome 或执行 `playwright install`。\n" + "\n".join(errors))
 
 
