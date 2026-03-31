@@ -259,6 +259,30 @@
       color: var(--muted);
       line-height: 1.5;
     }
+    .top-progress {
+      padding: 0 18px;
+    }
+    .top-progress-strip {
+      display: flex;
+      gap: 8px;
+      overflow: auto;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(6, 12, 20, 0.65);
+    }
+    .top-progress-item {
+      min-width: 140px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .top-progress-name {
+      margin-bottom: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
     .toolbar {
       padding: 0 18px 18px;
       display: grid;
@@ -307,6 +331,8 @@
       grid-template-rows: 390px 1fr;
     }
     .card {
+      display: flex;
+      flex-direction: column;
       border: 1px solid var(--line);
       border-radius: 20px;
       background: rgba(6, 12, 20, 0.72);
@@ -317,6 +343,23 @@
       padding: 14px 16px;
       border-bottom: 1px solid var(--line);
       background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+    }
+    .card-head-split {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .card-head-copy {
+      min-width: 0;
+      flex: 1;
+    }
+    .card-head-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
     .card-head h3 {
       margin: 0;
@@ -330,7 +373,8 @@
     }
     .card-body {
       padding: 14px;
-      height: calc(100% - 73px);
+      flex: 1;
+      height: auto;
       min-height: 0;
     }
     .scroll {
@@ -348,6 +392,11 @@
       line-height: 1.72;
       font-size: 13px;
       font-family: var(--mono);
+    }
+    .btn-mini {
+      padding: 8px 12px;
+      font-size: 12px;
+      min-height: 36px;
     }
     .text-editor {
       width: 100%;
@@ -402,6 +451,180 @@
       color: var(--muted);
       line-height: 1.7;
     }
+    .markdown-view {
+      font-size: 15px;
+      line-height: 1.82;
+      color: #dce7f5;
+      font-family: var(--sans);
+    }
+    .markdown-view > :first-child {
+      margin-top: 0;
+    }
+    .markdown-view > :last-child {
+      margin-bottom: 0;
+    }
+    .markdown-view h1,
+    .markdown-view h2,
+    .markdown-view h3,
+    .markdown-view h4 {
+      margin: 1.1em 0 0.55em;
+      line-height: 1.35;
+      color: #f6fbff;
+      letter-spacing: 0.01em;
+    }
+    .markdown-view h1 {
+      font-size: 28px;
+    }
+    .markdown-view h2 {
+      font-size: 22px;
+      padding-left: 10px;
+      border-left: 3px solid rgba(242, 84, 61, 0.72);
+    }
+    .markdown-view h3 {
+      font-size: 18px;
+      color: #ffd7d0;
+    }
+    .markdown-view h4 {
+      font-size: 16px;
+      color: #93e3ff;
+    }
+    .markdown-view p {
+      margin: 0.75em 0;
+      color: #d7e3ef;
+    }
+    .markdown-view strong {
+      color: #fff5f2;
+      font-weight: 700;
+    }
+    .markdown-view em {
+      color: #9fdaf0;
+      font-style: normal;
+    }
+    .markdown-view ul,
+    .markdown-view ol {
+      margin: 0.8em 0;
+      padding-left: 1.45em;
+    }
+    .markdown-view li {
+      margin: 0.4em 0;
+    }
+    .markdown-view hr {
+      border: 0;
+      border-top: 1px solid rgba(122, 148, 182, 0.22);
+      margin: 1.1em 0;
+    }
+    .markdown-view blockquote {
+      margin: 0.9em 0;
+      padding: 10px 14px;
+      border-left: 3px solid rgba(35, 160, 200, 0.62);
+      background: rgba(35, 160, 200, 0.08);
+      border-radius: 0 12px 12px 0;
+      color: #b9d7e6;
+    }
+    .markdown-view pre {
+      margin: 0.9em 0;
+      padding: 14px;
+      overflow: auto;
+      border-radius: 14px;
+      border: 1px solid rgba(122, 148, 182, 0.15);
+      background: rgba(2, 8, 15, 0.92);
+      color: #d4e4ff;
+      font-size: 13px;
+      line-height: 1.68;
+      font-family: var(--mono);
+    }
+    .markdown-view code {
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.08);
+      color: #ffd7d0;
+      font-size: 0.95em;
+      font-family: var(--mono);
+    }
+    .markdown-view pre code {
+      padding: 0;
+      background: transparent;
+      color: inherit;
+    }
+    .markdown-view table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1em 0;
+      font-size: 13px;
+      border: 1px solid rgba(122, 148, 182, 0.18);
+      overflow: hidden;
+      border-radius: 12px;
+    }
+    .markdown-view th,
+    .markdown-view td {
+      padding: 9px 10px;
+      border-bottom: 1px solid rgba(122, 148, 182, 0.14);
+      border-right: 1px solid rgba(122, 148, 182, 0.12);
+      text-align: left;
+      vertical-align: top;
+    }
+    .markdown-view th {
+      background: rgba(255,255,255,0.06);
+      color: #f1f7ff;
+      font-weight: 700;
+    }
+    .markdown-view tr:last-child td {
+      border-bottom: 0;
+    }
+    .markdown-view th:last-child,
+    .markdown-view td:last-child {
+      border-right: 0;
+    }
+    .markdown-placeholder {
+      color: var(--muted);
+      line-height: 1.8;
+    }
+    .loading-mask {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(3, 8, 14, 0.72);
+      backdrop-filter: blur(6px);
+      z-index: 9999;
+    }
+    .loading-mask.show {
+      display: flex;
+    }
+    .loading-panel {
+      width: min(420px, calc(100vw - 32px));
+      padding: 24px 22px;
+      border-radius: 22px;
+      border: 1px solid var(--line-strong);
+      background: linear-gradient(180deg, rgba(10, 18, 29, 0.96), rgba(15, 24, 37, 0.96));
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+    .loading-spinner {
+      width: 52px;
+      height: 52px;
+      margin: 0 auto 16px;
+      border-radius: 50%;
+      border: 4px solid rgba(255,255,255,0.12);
+      border-top-color: var(--accent);
+      animation: spin 0.9s linear infinite;
+    }
+    .loading-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f4f7fb;
+    }
+    .loading-text {
+      margin-top: 10px;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 13px;
+      white-space: pre-wrap;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
     @media (max-width: 1320px) {
       .shell { grid-template-columns: 1fr; }
       .sidebar { position: static; }
@@ -448,11 +671,16 @@
 
       <section class="section">
         <h3>Kimi 解析</h3>
-        <p>密钥会保存在当前浏览器本地，下次打开自动带出。</p>
+        <p>密钥将保存到当前电脑的本机加密配置中，浏览器端不再明文持久化。</p>
         <label for="kimiKey">Kimi API Key</label>
         <input id="kimiKey" type="password" placeholder="可留空，优先读取环境变量 MOONSHOT_API_KEY" />
+        <div id="kimiKeyHint" class="toolbar-sub" style="margin-top:8px;">当前未保存本机密钥</div>
         <label for="kimiModel">Kimi 模型</label>
         <input id="kimiModel" value="%DEFAULT_MODEL%" />
+        <div class="button-grid">
+          <button class="btn-ghost" onclick="saveSettings()">保存本机配置</button>
+          <button class="btn-ghost" onclick="clearKeyInput()">清空当前输入</button>
+        </div>
         <div class="button-grid">
           <button class="btn-secondary" onclick="analyzeTargets('all')">Kimi 全量解析</button>
           <button class="btn-secondary" onclick="analyzeTargets('selected')">解析所选标签</button>
@@ -492,6 +720,15 @@
             <div class="label">任务状态</div>
             <div class="value" id="metricStatus">待机</div>
             <div class="sub">任务执行时会同步更新</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="top-progress">
+        <div class="top-progress-strip" id="topProgressBoard">
+          <div class="top-progress-item">
+            <div class="top-progress-name">等待任务</div>
+            <div class="pill pending">待执行</div>
           </div>
         </div>
       </section>
@@ -551,12 +788,19 @@
           </section>
 
           <section class="card">
-            <div class="card-head">
-              <h3>AI 解析结果</h3>
-              <p>展示 Kimi 的结构化复盘输出。</p>
+            <div class="card-head card-head-split">
+              <div class="card-head-copy">
+                <h3>AI 解析结果</h3>
+                <p>展示 Kimi 的结构化复盘输出，并按 Markdown 预览方式显示。</p>
+              </div>
+              <div class="card-head-actions">
+                <button class="btn-ghost btn-mini" onclick="copyAnalysisSnapshot()">复制截图</button>
+              </div>
             </div>
             <div class="card-body">
-              <div class="scroll text-view" id="analysisContent">尚未生成 AI 解析结果。</div>
+              <div class="scroll markdown-view" id="analysisContent">
+                <div class="markdown-placeholder">尚未生成 AI 解析结果。</div>
+              </div>
             </div>
           </section>
         </div>
@@ -564,13 +808,17 @@
     </main>
   </div>
 
+  <div id="loadingMask" class="loading-mask">
+    <div class="loading-panel">
+      <div class="loading-spinner"></div>
+      <div class="loading-title">任务执行中</div>
+      <div id="loadingText" class="loading-text">正在提交请求...</div>
+    </div>
+  </div>
+
   <script>
     const TARGETS = %TARGETS_JSON%;
     const DEFAULT_MODEL = "%DEFAULT_MODEL%";
-    const STORAGE_KEYS = {
-      kimiKey: "kanpan.kimi.key",
-      kimiModel: "kanpan.kimi.model"
-    };
     const STATUS_TEXT = {
       pending: "待执行",
       queued: "排队中",
@@ -580,6 +828,11 @@
       completed: "已完成",
       failed: "失败",
       skipped: "跳过"
+    };
+    const JOB_STATUS_TEXT = {
+      running: "执行中",
+      completed: "已完成",
+      failed: "失败"
     };
 
     let state = {
@@ -591,13 +844,553 @@
     let activeJobId = "";
     let jobTimer = null;
     let lastPrompt = "";
+    let lastAnalysis = "";
     let lastAnalyzeTargets = [];
+    let loadingVisible = false;
 
     function setStatus(text, ok = false, running = false) {
       const el = document.getElementById("statusText");
       el.textContent = text;
       el.className = "status-text" + (running ? " running" : ok ? " ok" : "");
       document.getElementById("metricStatus").textContent = running ? "运行中" : ok ? "完成" : text;
+    }
+
+    function targetLabel(key) {
+      return TARGETS[key] ? TARGETS[key].label : key;
+    }
+
+    function orderedTargetList(targets = []) {
+      const chosen = new Set(targets);
+      return Object.keys(TARGETS).filter((key) => chosen.has(key));
+    }
+
+    function formatTargetLabels(targets = [], separator = " / ") {
+      return orderedTargetList(targets).map(targetLabel).join(separator);
+    }
+
+    function formatJobStatus(status) {
+      return JOB_STATUS_TEXT[status] || STATUS_TEXT[status] || status;
+    }
+
+    function jobActionLabel(jobType) {
+      if (jobType === "fetch") return "数据抓取";
+      if (jobType === "analyze") return "Kimi 解析";
+      return "任务执行";
+    }
+
+    function buildJobHeading(data = {}) {
+      const payload = data.payload || {};
+      const dateText = payload.date || state.currentDate || "";
+      const action = jobActionLabel(data.type);
+      return [dateText, action].filter(Boolean).join(" ");
+    }
+
+    function buildJobTargetText(data = {}) {
+      const payload = data.payload || {};
+      const targets = Array.isArray(payload.targets) ? payload.targets : [];
+      return formatTargetLabels(targets);
+    }
+
+    function buildLoadingDetail(data = {}) {
+      const heading = buildJobHeading(data);
+      const targetText = buildJobTargetText(data);
+      return [heading, targetText].filter(Boolean).join("\n");
+    }
+
+    function buildStatusSummary(data = {}) {
+      const heading = buildJobHeading(data);
+      const targetText = buildJobTargetText(data);
+      if (heading && targetText) {
+        return heading + "：" + targetText;
+      }
+      return heading || targetText || (data.title || "");
+    }
+
+    function normalizeErrorMessage(err) {
+      const text = String(err && err.message ? err.message : err || "")
+        .replace(/^Error:\s*/i, "")
+        .trim();
+      return text || "发生未知错误";
+    }
+
+    function splitTableRow(line) {
+      return String(line || "")
+        .trim()
+        .replace(/^\|/, "")
+        .replace(/\|$/, "")
+        .split("|")
+        .map((cell) => cell.trim());
+    }
+
+    function isTableDivider(line) {
+      const cells = splitTableRow(line);
+      return cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell));
+    }
+
+    function parseMarkdownBlocks(markdown) {
+      const lines = String(markdown || "").replace(/\r\n?/g, "\n").split("\n");
+      const blocks = [];
+      let paragraphLines = [];
+      let quoteLines = [];
+      let listItems = [];
+      let listType = "";
+      let codeLines = [];
+      let tableLines = [];
+      let inCode = false;
+
+      function flushParagraph() {
+        if (!paragraphLines.length) return;
+        blocks.push({ type: "paragraph", text: paragraphLines.join("\n") });
+        paragraphLines = [];
+      }
+
+      function flushQuote() {
+        if (!quoteLines.length) return;
+        blocks.push({ type: "quote", text: quoteLines.join("\n") });
+        quoteLines = [];
+      }
+
+      function flushList() {
+        if (!listItems.length) return;
+        blocks.push({ type: "list", ordered: listType === "ordered", items: [...listItems] });
+        listItems = [];
+        listType = "";
+      }
+
+      function flushTable() {
+        if (!tableLines.length) return;
+        const headers = splitTableRow(tableLines[0]);
+        const startIndex = tableLines.length > 1 && isTableDivider(tableLines[1]) ? 2 : 1;
+        const rows = tableLines
+          .slice(startIndex)
+          .map((line) => splitTableRow(line))
+          .filter((cells) => cells.length > 0 && cells.some((cell) => cell));
+        if (headers.length) {
+          blocks.push({ type: "table", headers, rows });
+        }
+        tableLines = [];
+      }
+
+      function flushAll() {
+        flushParagraph();
+        flushQuote();
+        flushList();
+        flushTable();
+      }
+
+      for (const rawLine of lines) {
+        const line = rawLine.replace(/\t/g, "  ");
+        const trimmed = line.trim();
+
+        if (inCode) {
+          if (trimmed.startsWith("```")) {
+            blocks.push({ type: "code", text: codeLines.join("\n") });
+            codeLines = [];
+            inCode = false;
+          } else {
+            codeLines.push(rawLine);
+          }
+          continue;
+        }
+
+        if (trimmed.startsWith("```")) {
+          flushAll();
+          inCode = true;
+          continue;
+        }
+
+        if (/^\s*\|.*\|\s*$/.test(line)) {
+          flushParagraph();
+          flushQuote();
+          flushList();
+          tableLines.push(trimmed);
+          continue;
+        }
+        flushTable();
+
+        if (!trimmed) {
+          flushAll();
+          continue;
+        }
+
+        if (/^(-{3,}|\*{3,}|_{3,})$/.test(trimmed)) {
+          flushAll();
+          blocks.push({ type: "hr" });
+          continue;
+        }
+
+        const headingMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
+        if (headingMatch) {
+          flushAll();
+          blocks.push({
+            type: "heading",
+            level: Math.min(4, headingMatch[1].length),
+            text: headingMatch[2].trim()
+          });
+          continue;
+        }
+
+        const quoteMatch = trimmed.match(/^>\s?(.*)$/);
+        if (quoteMatch) {
+          flushParagraph();
+          flushList();
+          quoteLines.push(quoteMatch[1]);
+          continue;
+        }
+        flushQuote();
+
+        const orderedMatch = trimmed.match(/^\d+\.\s+(.*)$/);
+        if (orderedMatch) {
+          flushParagraph();
+          if (listType && listType !== "ordered") flushList();
+          listType = "ordered";
+          listItems.push(orderedMatch[1]);
+          continue;
+        }
+
+        const unorderedMatch = trimmed.match(/^[-*+]\s+(.*)$/);
+        if (unorderedMatch) {
+          flushParagraph();
+          if (listType && listType !== "unordered") flushList();
+          listType = "unordered";
+          listItems.push(unorderedMatch[1]);
+          continue;
+        }
+        flushList();
+
+        paragraphLines.push(trimmed);
+      }
+
+      flushAll();
+      if (inCode && codeLines.length) {
+        blocks.push({ type: "code", text: codeLines.join("\n") });
+      }
+      return blocks;
+    }
+
+    function renderInlineMarkdown(text) {
+      const tokens = [];
+      let html = escapeHtml(String(text || ""));
+      html = html.replace(/`([^`]+)`/g, (_, code) => {
+        const token = `__CODE_TOKEN_${tokens.length}__`;
+        tokens.push(`<code>${code}</code>`);
+        return token;
+      });
+      html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+      html = html.replace(/__([^_]+)__/g, "<strong>$1</strong>");
+      html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+      html = html.replace(/_([^_]+)_/g, "<em>$1</em>");
+      html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
+      tokens.forEach((tokenHtml, index) => {
+        html = html.replace(`__CODE_TOKEN_${index}__`, tokenHtml);
+      });
+      return html;
+    }
+
+    function renderMarkdown(markdown) {
+      const blocks = parseMarkdownBlocks(markdown);
+      if (!blocks.length) {
+        return '<div class="markdown-placeholder">尚未生成 AI 解析结果。</div>';
+      }
+      return blocks.map((block) => {
+        if (block.type === "heading") {
+          const level = Math.min(4, Math.max(1, block.level || 1));
+          return `<h${level}>${renderInlineMarkdown(block.text)}</h${level}>`;
+        }
+        if (block.type === "paragraph") {
+          return `<p>${renderInlineMarkdown(block.text).replace(/\n/g, "<br />")}</p>`;
+        }
+        if (block.type === "quote") {
+          return `<blockquote>${renderInlineMarkdown(block.text).replace(/\n/g, "<br />")}</blockquote>`;
+        }
+        if (block.type === "list") {
+          const tag = block.ordered ? "ol" : "ul";
+          const items = block.items.map((item) => `<li>${renderInlineMarkdown(item)}</li>`).join("");
+          return `<${tag}>${items}</${tag}>`;
+        }
+        if (block.type === "code") {
+          return `<pre><code>${escapeHtml(block.text)}</code></pre>`;
+        }
+        if (block.type === "table") {
+          const head = `<thead><tr>${block.headers.map((cell) => `<th>${renderInlineMarkdown(cell)}</th>`).join("")}</tr></thead>`;
+          const bodyRows = block.rows.length
+            ? block.rows.map((row) => `<tr>${row.map((cell) => `<td>${renderInlineMarkdown(cell)}</td>`).join("")}</tr>`).join("")
+            : `<tr>${block.headers.map(() => "<td>-</td>").join("")}</tr>`;
+          return `<table>${head}<tbody>${bodyRows}</tbody></table>`;
+        }
+        return "<hr />";
+      }).join("");
+    }
+
+    function plainMarkdownText(text) {
+      return String(text || "")
+        .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+        .replace(/`([^`]+)`/g, "$1")
+        .replace(/\*\*([^*]+)\*\*/g, "$1")
+        .replace(/__([^_]+)__/g, "$1")
+        .replace(/\*([^*]+)\*/g, "$1")
+        .replace(/_([^_]+)_/g, "$1")
+        .trim();
+    }
+
+    function wrapCanvasText(ctx, text, maxWidth) {
+      const paragraphs = String(text || "").split("\n");
+      const lines = [];
+      paragraphs.forEach((paragraph) => {
+        if (!paragraph) {
+          lines.push("");
+          return;
+        }
+        let current = "";
+        for (const char of paragraph) {
+          const candidate = current + char;
+          if (current && ctx.measureText(candidate).width > maxWidth) {
+            lines.push(current);
+            current = char;
+          } else {
+            current = candidate;
+          }
+        }
+        if (current) lines.push(current);
+      });
+      return lines.length ? lines : [""];
+    }
+
+    function roundedRect(ctx, x, y, width, height, radius) {
+      const r = Math.min(radius, width / 2, height / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + width, y, x + width, y + height, r);
+      ctx.arcTo(x + width, y + height, x, y + height, r);
+      ctx.arcTo(x, y + height, x, y, r);
+      ctx.arcTo(x, y, x + width, y, r);
+      ctx.closePath();
+    }
+
+    function snapshotSegments(markdown) {
+      const blocks = parseMarkdownBlocks(markdown);
+      const segments = [];
+      blocks.forEach((block) => {
+        if (block.type === "heading") {
+          segments.push({ type: `h${Math.min(4, Math.max(1, block.level || 1))}`, text: plainMarkdownText(block.text) });
+          return;
+        }
+        if (block.type === "paragraph") {
+          segments.push({ type: "body", text: plainMarkdownText(block.text) });
+          return;
+        }
+        if (block.type === "quote") {
+          segments.push({ type: "quote", text: plainMarkdownText(block.text) });
+          return;
+        }
+        if (block.type === "list") {
+          block.items.forEach((item, index) => {
+            const prefix = block.ordered ? `${index + 1}. ` : "• ";
+            segments.push({ type: "list", text: prefix + plainMarkdownText(item) });
+          });
+          return;
+        }
+        if (block.type === "code") {
+          segments.push({ type: "code", text: block.text.trim() });
+          return;
+        }
+        if (block.type === "table") {
+          const rows = [
+            block.headers.join(" ｜ "),
+            ...block.rows.map((row) => row.join(" ｜ "))
+          ].join("\n");
+          segments.push({ type: "table", text: rows });
+          return;
+        }
+        segments.push({ type: "divider", text: "" });
+      });
+      return segments;
+    }
+
+    function createAnalysisSnapshotCanvas(markdown) {
+      const segments = snapshotSegments(markdown);
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const width = 1280;
+      const padding = 58;
+      const contentWidth = width - padding * 2;
+      const metaText = [
+        state.currentDate ? `交易日 ${state.currentDate}` : "",
+        lastAnalyzeTargets.length ? formatTargetLabels(lastAnalyzeTargets, " / ") : ""
+      ].filter(Boolean).join("    ");
+
+      const palette = {
+        title: "#f6fbff",
+        subtitle: "#8fa2ba",
+        body: "#dce7f5",
+        accent: "#ffd6ce",
+        accentStrong: "#ff735e",
+        quote: "#a8d7e9",
+        border: "rgba(122, 148, 182, 0.24)",
+        panel: "#0a1420",
+        panel2: "#0e1928",
+        code: "#08121d"
+      };
+
+      function render(draw) {
+        let y = padding;
+
+        ctx.font = "700 42px Microsoft YaHei UI";
+        if (draw) {
+          ctx.fillStyle = palette.title;
+          ctx.fillText("AI 复盘解析", padding, y);
+        }
+        y += 56;
+
+        if (metaText) {
+          ctx.font = "16px Microsoft YaHei UI";
+          if (draw) {
+            ctx.fillStyle = palette.subtitle;
+            ctx.fillText(metaText, padding, y);
+          }
+          y += 34;
+        }
+
+        if (draw) {
+          ctx.strokeStyle = palette.border;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(padding, y);
+          ctx.lineTo(width - padding, y);
+          ctx.stroke();
+        }
+        y += 28;
+
+        for (const segment of segments) {
+          if (segment.type === "divider") {
+            if (draw) {
+              ctx.strokeStyle = palette.border;
+              ctx.beginPath();
+              ctx.moveTo(padding, y);
+              ctx.lineTo(width - padding, y);
+              ctx.stroke();
+            }
+            y += 24;
+            continue;
+          }
+
+          let font = "18px Microsoft YaHei UI";
+          let color = palette.body;
+          let lineHeight = 34;
+          let blockPaddingY = 0;
+          let background = "";
+          let leftBar = "";
+          let offsetX = padding;
+          let maxWidth = contentWidth;
+
+          if (segment.type === "h1") {
+            font = "700 34px Microsoft YaHei UI";
+            color = palette.title;
+            lineHeight = 48;
+          } else if (segment.type === "h2") {
+            font = "700 28px Microsoft YaHei UI";
+            color = palette.accentStrong;
+            lineHeight = 40;
+          } else if (segment.type === "h3") {
+            font = "700 23px Microsoft YaHei UI";
+            color = palette.accent;
+            lineHeight = 34;
+          } else if (segment.type === "h4") {
+            font = "700 20px Microsoft YaHei UI";
+            color = "#92e0ff";
+            lineHeight = 30;
+          } else if (segment.type === "quote") {
+            font = "18px Microsoft YaHei UI";
+            color = palette.quote;
+            lineHeight = 32;
+            blockPaddingY = 14;
+            background = "rgba(35, 160, 200, 0.10)";
+            leftBar = "rgba(35, 160, 200, 0.72)";
+            offsetX = padding + 18;
+            maxWidth = contentWidth - 24;
+          } else if (segment.type === "code" || segment.type === "table") {
+            font = "16px Consolas";
+            color = "#d4e4ff";
+            lineHeight = 28;
+            blockPaddingY = 16;
+            background = "rgba(4, 10, 18, 0.92)";
+            offsetX = padding + 16;
+            maxWidth = contentWidth - 32;
+          }
+
+          ctx.font = font;
+          const lines = wrapCanvasText(ctx, segment.text, maxWidth);
+          const blockHeight = lines.length * lineHeight + blockPaddingY * 2;
+
+          if (draw && background) {
+            ctx.save();
+            roundedRect(ctx, padding, y - 8, contentWidth, blockHeight + 16, 18);
+            ctx.fillStyle = background;
+            ctx.fill();
+            ctx.restore();
+          }
+
+          if (draw && leftBar) {
+            ctx.save();
+            roundedRect(ctx, padding, y - 8, 4, blockHeight + 16, 4);
+            ctx.fillStyle = leftBar;
+            ctx.fill();
+            ctx.restore();
+          }
+
+          if (draw) {
+            ctx.font = font;
+            ctx.fillStyle = color;
+          }
+
+          let textY = y + blockPaddingY + lineHeight * 0.82;
+          lines.forEach((line) => {
+            if (draw && line) {
+              ctx.fillText(line, offsetX, textY);
+            }
+            textY += lineHeight;
+          });
+          y += blockHeight + 20;
+        }
+
+        return y + padding - 20;
+      }
+
+      canvas.width = width;
+      canvas.height = Math.max(760, Math.ceil(render(false)));
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, palette.panel);
+      gradient.addColorStop(1, palette.panel2);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      roundedRect(ctx, 16, 16, canvas.width - 32, canvas.height - 32, 28);
+      ctx.strokeStyle = "rgba(122, 148, 182, 0.28)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+
+      render(true);
+      return canvas;
+    }
+
+    function showLoading(text) {
+      loadingVisible = true;
+      document.getElementById("loadingText").textContent = text || "正在执行任务...";
+      document.getElementById("loadingMask").classList.add("show");
+    }
+
+    function updateLoading(text) {
+      if (!loadingVisible) return;
+      document.getElementById("loadingText").textContent = text || "正在执行任务...";
+    }
+
+    function hideLoading() {
+      loadingVisible = false;
+      document.getElementById("loadingMask").classList.remove("show");
     }
 
     function selectedTargetList(mode) {
@@ -647,10 +1440,13 @@
 
     function renderProgress(statuses = null) {
       const root = document.getElementById("progressBoard");
+      const topRoot = document.getElementById("topProgressBoard");
       root.innerHTML = "";
-      const keys = Array.from(selectedTargets);
+      topRoot.innerHTML = "";
+      const keys = Object.keys(TARGETS).filter((key) => selectedTargets.has(key));
       if (!keys.length) {
         root.innerHTML = '<div class="empty">当前未选择任何标签。</div>';
+        topRoot.innerHTML = '<div class="top-progress-item"><div class="top-progress-name">未选择标签</div><div class="pill pending">待执行</div></div>';
         return;
       }
       keys.forEach((key) => {
@@ -668,6 +1464,18 @@
         item.appendChild(label);
         item.appendChild(pill);
         root.appendChild(item);
+
+        const topItem = document.createElement("div");
+        topItem.className = "top-progress-item";
+        const topName = document.createElement("div");
+        topName.className = "top-progress-name";
+        topName.textContent = TARGETS[key].label;
+        const topPill = document.createElement("div");
+        topPill.className = "pill " + raw;
+        topPill.textContent = STATUS_TEXT[raw] || raw;
+        topItem.appendChild(topName);
+        topItem.appendChild(topPill);
+        topRoot.appendChild(topItem);
       });
     }
 
@@ -688,7 +1496,7 @@
         const body = item.exists === "true"
           ? escapeHtml(item.content || "该标签文件为空。")
           : "当前标签尚未生成数据。";
-        const meta = item.exists === "true" ? item.file : "未抓取";
+        const meta = item.exists === "true" ? "数据已入库" : "待抓取";
         return `
           <section class="dataset">
             <div class="dataset-head">
@@ -710,20 +1518,42 @@
       document.getElementById("analysisContent").textContent = text || "尚未生成 AI 解析结果。";
     }
 
-    function saveCredentials() {
-      localStorage.setItem(STORAGE_KEYS.kimiKey, document.getElementById("kimiKey").value);
-      localStorage.setItem(STORAGE_KEYS.kimiModel, document.getElementById("kimiModel").value);
+    function applySettings(settings = {}) {
+      document.getElementById("kimiModel").value = settings.kimiModel || DEFAULT_MODEL;
+      document.getElementById("kimiKeyHint").textContent = settings.hasKimiKey
+        ? "本机已保存密钥: " + (settings.kimiKeyMask || "")
+        : "当前未保存本机密钥";
+      if (!document.getElementById("kimiKey").value.trim()) {
+        document.getElementById("kimiKey").placeholder = settings.hasKimiKey
+          ? "留空则继续使用已保存密钥"
+          : "可留空，优先读取环境变量 MOONSHOT_API_KEY";
+      }
     }
 
-    function restoreCredentials() {
-      const savedKey = localStorage.getItem(STORAGE_KEYS.kimiKey);
-      const savedModel = localStorage.getItem(STORAGE_KEYS.kimiModel);
-      if (savedKey !== null) {
-        document.getElementById("kimiKey").value = savedKey;
+    async function loadSettings() {
+      const res = await fetch("/api/settings");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "加载配置失败");
+      applySettings(data);
+    }
+
+    async function saveSettings() {
+      try {
+        const data = await postJson("/api/settings", {
+          kimi_key: document.getElementById("kimiKey").value.trim(),
+          kimi_model: document.getElementById("kimiModel").value.trim() || DEFAULT_MODEL
+        });
+        applySettings(data);
+        document.getElementById("kimiKey").value = "";
+        setStatus("本机配置已保存", true);
+      } catch (err) {
+        setStatus(normalizeErrorMessage(err));
       }
-      if (savedModel) {
-        document.getElementById("kimiModel").value = savedModel;
-      }
+    }
+
+    function clearKeyInput() {
+      document.getElementById("kimiKey").value = "";
+      setStatus("已清空当前输入", true);
     }
 
     async function refreshState(dateOverride = "") {
@@ -733,6 +1563,7 @@
       if (!res.ok) throw new Error(data.error || "加载状态失败");
       state = data;
       document.getElementById("tradeDate").value = state.currentDate;
+      if (state.settings) applySettings(state.settings);
       if (!activeJobId) setStatus("状态已刷新", true);
       updateMetrics();
     }
@@ -755,19 +1586,22 @@
         setStatus("请先选择抓取目标");
         return;
       }
-      setStatus("正在抓取：" + targets.join(", "), false, true);
+      const targetText = formatTargetLabels(targets);
+      showLoading("正在提交抓取请求...\n" + targetText);
+      setStatus("正在抓取：" + formatTargetLabels(targets, "、"), false, true);
       document.getElementById("jobLog").textContent = "任务已提交，等待日志...";
       renderProgress(Object.fromEntries(targets.map((item) => [item, "queued"])));
       try {
         const data = await postJson("/api/fetch", { date, targets });
+        updateLoading("抓取任务已提交，等待服务返回日志...\n" + targetText);
         followJob(data.job_id, date);
       } catch (err) {
-        setStatus(String(err));
+        hideLoading();
+        setStatus(normalizeErrorMessage(err));
       }
     }
 
     async function analyzeTargets(mode, promptOverride = "") {
-      saveCredentials();
       const date = document.getElementById("tradeDate").value.trim();
       let targets = selectedTargetList(mode);
       if (mode === "all") {
@@ -778,7 +1612,9 @@
         return;
       }
       lastAnalyzeTargets = [...targets];
-      setStatus("Kimi 解析中：" + targets.join(", "), false, true);
+      const targetText = formatTargetLabels(targets);
+      showLoading("正在提交 AI 解析请求...\n" + targetText);
+      setStatus("Kimi 解析中：" + formatTargetLabels(targets, "、"), false, true);
       document.getElementById("jobLog").textContent = "任务已提交，等待日志...";
       renderProgress(Object.fromEntries(targets.map((item) => [item, "queued"])));
       try {
@@ -789,9 +1625,11 @@
           model: document.getElementById("kimiModel").value.trim() || DEFAULT_MODEL,
           prompt_override: promptOverride
         });
+        updateLoading("AI 解析任务已提交，正在等待阶段更新...\n" + targetText);
         followJob(data.job_id, date);
       } catch (err) {
-        setStatus(String(err));
+        hideLoading();
+        setStatus(normalizeErrorMessage(err));
       }
     }
 
@@ -821,8 +1659,14 @@
 
           document.getElementById("jobLog").textContent = (data.logs || []).join("\n");
           renderProgress(data.target_statuses || {});
+          const phaseText = data.status === "running"
+            ? "任务执行中，正在等待最新阶段日志..."
+            : data.status === "completed"
+              ? "任务已完成，正在刷新页面结果..."
+              : "任务执行失败，请查看日志";
+          updateLoading([phaseText, buildLoadingDetail(data)].filter(Boolean).join("\n"));
           setStatus(
-            data.title + " / " + (data.status === "running" ? "执行中" : data.status),
+            buildStatusSummary(data) + " / " + formatJobStatus(data.status),
             data.status === "completed",
             data.status === "running"
           );
@@ -846,12 +1690,14 @@
             if (data.status === "failed") {
               setStatus(data.error || "任务失败");
             }
+            hideLoading();
           }
         } catch (err) {
           clearInterval(jobTimer);
           jobTimer = null;
           activeJobId = "";
-          setStatus(String(err));
+          hideLoading();
+          setStatus(normalizeErrorMessage(err));
           renderProgress();
         }
       };
@@ -886,15 +1732,11 @@
         .replaceAll(">", "&gt;");
     }
 
-    document.getElementById("kimiKey").addEventListener("input", saveCredentials);
-    document.getElementById("kimiModel").addEventListener("input", saveCredentials);
-
-    restoreCredentials();
     renderTags();
     renderSingleButtons();
     renderProgress();
     updateMetrics();
-    refreshState().catch((err) => setStatus(String(err)));
+    Promise.all([refreshState(), loadSettings()]).catch((err) => setStatus(normalizeErrorMessage(err)));
   </script>
 </body>
 </html>

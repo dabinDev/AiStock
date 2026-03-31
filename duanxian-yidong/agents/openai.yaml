@@ -1,0 +1,4 @@
+interface:
+  display_name: "短线异动"
+  short_description: "盘中快速更新异动播报快照，保留当下可见市场异动结构。"
+  default_prompt: "Use $duanxian-yidong to update today's yidong file under data/YYYY-MM-DD/."

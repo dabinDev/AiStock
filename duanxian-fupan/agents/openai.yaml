@@ -1,0 +1,4 @@
+interface:
+  display_name: "短线复盘"
+  short_description: "收盘后统一更新连板天梯、近期涨停和短线股池复盘文件。"
+  default_prompt: "Use $duanxian-fupan to update today's after-close recap files under data/YYYY-MM-DD/."

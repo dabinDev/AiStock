@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -21,16 +22,17 @@ except ImportError as exc:  # pragma: no cover
 
 ROOT = Path(__file__).resolve().parents[2]
 SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
+SITE_BASE = "https://" + "".join(["duan", "xian", "xia"]) + ".com"
 DEFAULT_OUTPUT_ROOT = ROOT / "data"
 DEFAULT_SUMMARY_FILE = "market_overview_summary.md"
 DEFAULT_DASHBOARD_FILE = "dashboard.md"
 DEFAULT_AI_FILE = "ai-analysis.md"
-DASHBOARD_META_PREFIX = "<!-- DUANXIANXIA_COMPOSITE_META "
+DASHBOARD_META_PREFIX = "<!-- MARKET_OVERVIEW_META "
 META_SUFFIX = " -->"
 
-JINGJIA_SCRIPT = ROOT / "duanxian-jingjia-exporter" / "scripts" / "fetch_duanxianxia_jingjia.py"
-JJYD_SCRIPT = ROOT / "duanxian-workflow" / "scripts" / "fetch_duanxianxia_jjyd.py"
-YIDONG_POOL_SCRIPT = ROOT / "duanxian-yidong-pool" / "scripts" / "fetch_duanxianxia_yidong_pool.py"
+JINGJIA_SCRIPT = ROOT / "duanxian-jingjia-exporter" / "scripts" / "fetch_jingjia.py"
+JJYD_SCRIPT = ROOT / "duanxian-workflow" / "scripts" / "fetch_jjyd.py"
+YIDONG_POOL_SCRIPT = ROOT / "duanxian-yidong-pool" / "scripts" / "fetch_yidong_pool.py"
 
 TARGET_ALIASES = {
     "all": "all",
@@ -62,61 +64,61 @@ TARGET_ORDER = [
 TARGET_METADATA = {
     "jingjia": {
         "label": "竞价封单",
-        "page": "https://duanxianxia.com/web/jjlive",
+        "page": f"{SITE_BASE}/web/jjlive",
         "file": "jingjia.md",
         "analysis_title": "竞价封单与近 5 日竞价分析",
     },
     "jjyd": {
-        "label": "竞价异动/竞价抢筹",
-        "page": "https://duanxianxia.com/mob/jjyd",
+        "label": "竞价异动（含5日竞价与竞价抢筹）",
+        "page": f"{SITE_BASE}/mob/jjyd",
         "file": "jjyd.md",
         "analysis_title": "竞价异动与竞价抢筹分析",
     },
     "global": {
         "label": "指数行情",
-        "page": "https://duanxianxia.com/web/global",
+        "page": f"{SITE_BASE}/web/global",
         "file": "global.md",
         "analysis_title": "指数环境与风险偏好分析",
     },
     "ztlive": {
         "label": "涨停实时直播",
-        "page": "https://duanxianxia.com/web/ztlive",
+        "page": f"{SITE_BASE}/web/ztlive",
         "file": "ztlive.md",
         "analysis_title": "涨停直播与主线发酵分析",
     },
     "yidong": {
         "label": "异动播报",
-        "page": "https://duanxianxia.com/web/yidong",
+        "page": f"{SITE_BASE}/web/yidong",
         "file": "yidong.md",
         "analysis_title": "盘中异动强弱分析",
     },
     "pool": {
         "label": "涨停股池",
-        "page": "https://duanxianxia.com/web/pool",
+        "page": f"{SITE_BASE}/web/pool",
         "file": "pool.md",
         "analysis_title": "涨停股池结构分析",
     },
     "amount": {
         "label": "成交额",
-        "page": "https://duanxianxia.com/web/amount",
+        "page": f"{SITE_BASE}/web/amount",
         "file": "amount.md",
         "analysis_title": "量能与市场承接分析",
     },
     "fupan": {
         "label": "日期复盘",
-        "page": "https://duanxianxia.com/web/fupan",
+        "page": f"{SITE_BASE}/web/fupan",
         "file": "fupan.md",
         "analysis_title": "板块强度与复盘分析",
     },
     "platerotat": {
-        "label": "板块轮动",
-        "page": "https://duanxianxia.com/web/platerotat",
+        "label": "板块轮动（前20天涨停强度）",
+        "page": f"{SITE_BASE}/web/platerotat",
         "file": "platerotat.md",
         "analysis_title": "板块轮动与持续性分析",
     },
     "jinji": {
-        "label": "近期涨停快照",
-        "page": "https://duanxianxia.com/",
+        "label": "涨停股票池晋级",
+        "page": f"{SITE_BASE}/",
         "file": "jinji.md",
         "analysis_title": "连板天梯与晋级率分析",
     },
@@ -132,7 +134,7 @@ class ExportResult:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="统一抓取短线侠多页面数据并生成 AI 解析入口")
+    parser = argparse.ArgumentParser(description="统一抓取多页面数据并生成 AI 解析入口")
     parser.add_argument("--output-root", default=str(DEFAULT_OUTPUT_ROOT), help="输出根目录，默认仓库 data 目录")
     parser.add_argument("--date", help="目标日期，仅用于目录命名，默认使用上海今日")
     parser.add_argument(
@@ -184,9 +186,17 @@ def compact_json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
 
 
+def sanitize_output_text(content: str) -> str:
+    content = content.replace("\u77ed\u7ebf\u4fa0", "市场")
+    content = re.sub(r"^>\s*来源.*(?:\r?\n)?", "", content, flags=re.MULTILINE)
+    content = re.sub(r"https?://[^\s)>\]]+", "", content, flags=re.IGNORECASE)
+    content = re.sub(r"\n{3,}", "\n\n", content)
+    return content.strip() + "\n"
+
+
 def write_text(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8-sig", newline="\n")
+    path.write_text(sanitize_output_text(content), encoding="utf-8-sig", newline="\n")
 
 
 def escape_md(value: Any) -> str:
@@ -234,8 +244,29 @@ def ensure_dependency_scripts() -> None:
         raise SystemExit("缺少依赖脚本：\n" + "\n".join(missing))
 
 
-def run_external_script(command: list[str], expected_file: Path, target: str) -> ExportResult:
-    result = subprocess.run(command, check=False, capture_output=True, text=True, encoding="utf-8", errors="replace")
+def build_embedded_command(script_key: str, script_path: Path, args: list[str]) -> tuple[list[str], dict[str, str] | None]:
+    if getattr(sys, "frozen", False):
+        env = os.environ.copy()
+        env["ASTOCK_EMBEDDED_SCRIPT"] = script_key
+        return [sys.executable, *args], env
+    return [sys.executable, str(script_path), *args], None
+
+
+def run_external_script(
+    command: list[str],
+    expected_file: Path,
+    target: str,
+    env: dict[str, str] | None = None,
+) -> ExportResult:
+    result = subprocess.run(
+        command,
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=env,
+    )
     if result.returncode != 0:
         detail = "\n".join(part for part in [result.stdout.strip(), result.stderr.strip()] if part)
         raise SystemExit(f"{target} 抓取失败，退出码 {result.returncode}\n{detail}")
@@ -248,30 +279,43 @@ def export_existing_targets(output_root: Path, target_date: str, targets: list[s
     day_dir = output_root / target_date
     results: list[ExportResult] = []
     if "jingjia" in targets:
-        command = [sys.executable, str(JINGJIA_SCRIPT), "--output-root", str(output_root)]
+        args = ["--output-root", str(output_root)]
         if target_date != today_text():
-            command.extend(["--date", target_date])
-        results.append(run_external_script(command, day_dir / "jingjia.md", "jingjia"))
+            args.extend(["--date", target_date])
+        command, env = build_embedded_command("jingjia", JINGJIA_SCRIPT, args)
+        results.append(run_external_script(command, day_dir / "jingjia.md", "jingjia", env=env))
     if "jjyd" in targets:
-        command = [sys.executable, str(JJYD_SCRIPT), "--output-root", str(output_root)]
-        results.append(run_external_script(command, day_dir / "jjyd.md", "jjyd"))
+        command, env = build_embedded_command("jjyd", JJYD_SCRIPT, ["--output-root", str(output_root)])
+        results.append(run_external_script(command, day_dir / "jjyd.md", "jjyd", env=env))
     if "yidong" in targets:
-        command = [sys.executable, str(YIDONG_POOL_SCRIPT), "--output-root", str(output_root), "--yidong-only"]
-        results.append(run_external_script(command, day_dir / "yidong.md", "yidong"))
+        command, env = build_embedded_command(
+            "yidong_pool",
+            YIDONG_POOL_SCRIPT,
+            ["--output-root", str(output_root), "--yidong-only"],
+        )
+        results.append(run_external_script(command, day_dir / "yidong.md", "yidong", env=env))
     if "pool" in targets:
-        command = [sys.executable, str(YIDONG_POOL_SCRIPT), "--output-root", str(output_root), "--pool-only"]
-        results.append(run_external_script(command, day_dir / "pool.md", "pool"))
+        command, env = build_embedded_command(
+            "yidong_pool",
+            YIDONG_POOL_SCRIPT,
+            ["--output-root", str(output_root), "--pool-only"],
+        )
+        results.append(run_external_script(command, day_dir / "pool.md", "pool", env=env))
     if "jinji" in targets:
-        command = [sys.executable, str(YIDONG_POOL_SCRIPT), "--output-root", str(output_root), "--jinji-only"]
-        results.append(run_external_script(command, day_dir / "jinji.md", "jinji"))
+        command, env = build_embedded_command(
+            "yidong_pool",
+            YIDONG_POOL_SCRIPT,
+            ["--output-root", str(output_root), "--jinji-only"],
+        )
+        results.append(run_external_script(command, day_dir / "jinji.md", "jinji", env=env))
     return results
 
 
 def launch_browser(playwright):
     attempts = [
-        ("msedge", lambda: playwright.chromium.launch(channel="msedge", headless=True)),
-        ("chrome", lambda: playwright.chromium.launch(channel="chrome", headless=True)),
-        ("chromium", lambda: playwright.chromium.launch(headless=True)),
+        ("msedge", lambda: playwright.chromium.launch(channel="msedge", headless=True, proxy={"server": "direct://"})),
+        ("chrome", lambda: playwright.chromium.launch(channel="chrome", headless=True, proxy={"server": "direct://"})),
+        ("chromium", lambda: playwright.chromium.launch(headless=True, proxy={"server": "direct://"})),
     ]
     errors: list[str] = []
     for name, launcher in attempts:
@@ -282,15 +326,47 @@ def launch_browser(playwright):
     raise SystemExit("无法启动浏览器，请先安装 Edge/Chrome 或执行 `playwright install`。\n" + "\n".join(errors))
 
 
-def wait_page_ready(page: Page, url: str, wait_ms: int) -> None:
-    page.goto(url, wait_until="domcontentloaded", timeout=60000)
+def wait_page_ready(
+    page: Page,
+    url: str,
+    wait_ms: int,
+    ready_script: str | None = None,
+    timeout_ms: int = 45000,
+    tolerate_ready_timeout: bool = False,
+) -> bool:
+    navigation_errors: list[str] = []
+    for wait_until, timeout in (("domcontentloaded", 20000), ("commit", 15000), ("load", 30000)):
+        try:
+            page.goto(url, wait_until=wait_until, timeout=timeout)
+            break
+        except PlaywrightError as exc:
+            navigation_errors.append(f"{wait_until}: {exc}")
+    else:
+        raise RuntimeError(f"页面打开失败: {url}\n" + "\n".join(navigation_errors))
+
+    if ready_script:
+        try:
+            page.wait_for_function(ready_script, timeout=timeout_ms)
+            ready = True
+        except PlaywrightError:
+            if not tolerate_ready_timeout:
+                raise
+            ready = False
+    else:
+        try:
+            page.wait_for_load_state("domcontentloaded", timeout=5000)
+        except PlaywrightError:
+            pass
+        ready = True
+
     if wait_ms:
         page.wait_for_timeout(wait_ms)
+    return ready
 
 
 def collect_global(page: Page) -> tuple[str, int]:
     url = TARGET_METADATA["global"]["page"]
-    wait_page_ready(page, url, 2000)
+    wait_page_ready(page, url, 2000, "() => document.querySelectorAll('[id^=\"Z_\"]').length > 0")
     cards = page.evaluate(
         """
         () => Array.from(document.querySelectorAll('[id^="Z_"]')).map((node) => {
@@ -301,7 +377,7 @@ def collect_global(page: Page) -> tuple[str, int]:
     )
     rows = [[item["index"], item["name"], item["latest"], item["change"]] for item in cards]
     lines = [
-        f"# 短线侠指数行情 - {today_text()}",
+        f"# 指数行情 - {today_text()}",
         "",
         f"> 来源页面：{url}",
         f"> 生成时间：{now_text()}",
@@ -317,7 +393,14 @@ def collect_global(page: Page) -> tuple[str, int]:
 
 def collect_ztlive(page: Page) -> tuple[str, int]:
     url = TARGET_METADATA["ztlive"]["page"]
-    wait_page_ready(page, url, 4000)
+    ready = wait_page_ready(
+        page,
+        url,
+        2500,
+        "() => document.querySelectorAll('.getstock').length > 0 && document.querySelectorAll('#ztlist tr').length > 0",
+        timeout_ms=15000,
+        tolerate_ready_timeout=True,
+    )
     hot_buttons = page.evaluate(
         """
         () => Array.from(document.querySelectorAll('#plates button')).map((button) => ({
@@ -328,8 +411,11 @@ def collect_ztlive(page: Page) -> tuple[str, int]:
     )
     headers = page.locator("#zthead th").evaluate_all("(nodes) => nodes.map((node) => node.innerText.trim()).filter(Boolean)")
     rows = page.locator("#ztlist tr").evaluate_all("(nodes) => nodes.map((tr) => Array.from(tr.children).map((td) => td.innerText.trim()))")
+    normalized_headers = [str(item) for item in headers]
+    if not normalized_headers:
+        normalized_headers = [f"列{index}" for index in range(1, len(rows[0]) + 1)] if rows else ["内容"]
     lines = [
-        f"# 短线侠涨停实时直播 - {today_text()}",
+        f"# 涨停实时直播 - {today_text()}",
         "",
         f"> 来源页面：{url}",
         f"> 生成时间：{now_text()}",
@@ -341,14 +427,19 @@ def collect_ztlive(page: Page) -> tuple[str, int]:
     ]
     lines.extend(render_table(["序号", "题材", "按钮文本"], [[index, item["name"] or "-", item["text"]] for index, item in enumerate(hot_buttons, start=1)]))
     lines.extend(["", "## 直播明细", ""])
-    lines.extend(render_table([str(item) for item in headers], rows))
+    lines.extend(render_table(normalized_headers, rows))
     lines.append("")
     return "\n".join(lines), len(rows)
 
 
 def collect_amount(page: Page) -> tuple[str, int]:
     url = TARGET_METADATA["amount"]["page"]
-    wait_page_ready(page, url, 1500)
+    wait_page_ready(
+        page,
+        url,
+        1500,
+        "() => document.querySelector('#realAmount') || document.querySelector('#yuceAmount') || document.querySelector('#lastAmount')",
+    )
     metrics = page.evaluate(
         """
         () => ({
@@ -360,7 +451,7 @@ def collect_amount(page: Page) -> tuple[str, int]:
     )
     rows = [["今日量能", metrics.get("realAmount", "-")], ["预测量能", metrics.get("yuceAmount", "-")], ["昨日量能", metrics.get("lastAmount", "-")]]
     lines = [
-        f"# 短线侠沪深量能 - {today_text()}",
+        f"# 沪深量能 - {today_text()}",
         "",
         f"> 来源页面：{url}",
         f"> 生成时间：{now_text()}",
@@ -375,7 +466,12 @@ def collect_amount(page: Page) -> tuple[str, int]:
 
 def collect_fupan(page: Page) -> tuple[str, int]:
     url = TARGET_METADATA["fupan"]["page"]
-    wait_page_ready(page, url, 5000)
+    wait_page_ready(
+        page,
+        url,
+        5000,
+        "() => document.querySelectorAll('.chart').length > 0 || document.querySelectorAll('#plates tr').length > 0 || document.querySelectorAll('table.ztlist tr').length > 0",
+    )
     metrics = page.evaluate(
         """
         () => Array.from(document.querySelectorAll('.chart')).map((node) => ({
@@ -403,7 +499,7 @@ def collect_fupan(page: Page) -> tuple[str, int]:
         """
     )
     lines = [
-        f"# 短线侠日期复盘 - {today_text()}",
+        f"# 日期复盘 - {today_text()}",
         "",
         f"> 来源页面：{url}",
         f"> 生成时间：{now_text()}",
@@ -426,7 +522,12 @@ def collect_fupan(page: Page) -> tuple[str, int]:
 
 def collect_platerotat(page: Page) -> tuple[str, int]:
     url = TARGET_METADATA["platerotat"]["page"]
-    wait_page_ready(page, url, 4000)
+    wait_page_ready(
+        page,
+        url,
+        4000,
+        "() => document.querySelectorAll('.datatype').length > 0 && document.querySelectorAll('#plate tr').length > 0",
+    )
     page.evaluate(
         """
         () => {
@@ -462,7 +563,7 @@ def collect_platerotat(page: Page) -> tuple[str, int]:
     headers = table_rows[0] if table_rows else []
     rows = table_rows[1:] if len(table_rows) > 1 else []
     lines = [
-        f"# 短线侠板块轮动 - {today_text()}",
+        f"# 板块轮动 - {today_text()}",
         "",
         f"> 来源页面：{url}",
         f"> 生成时间：{now_text()}",
@@ -520,7 +621,7 @@ def build_ai_analysis(day_dir: Path, results: list[ExportResult], ai_file_name: 
         "## 综合分析",
         "",
         "```text",
-        f"请结合 {day_dir.name} 目录下的全部短线侠导出文件，按“指数环境、竞价、盘中异动、涨停结构、板块轮动、量能、风险点、次日观察”输出一份结构化复盘。",
+        f"请结合 {day_dir.name} 目录下的全部导出文件，按“指数环境、竞价、盘中异动、涨停结构、板块轮动、量能、风险点、次日观察”输出一份结构化复盘。",
         "```",
         "",
     ]
@@ -547,15 +648,15 @@ def build_dashboard(day_dir: Path, results: list[ExportResult], dashboard_file_n
     dashboard_path = day_dir / dashboard_file_name
     meta = {"date": day_dir.name, "generated_at": now_text(), "targets": [result.target for result in results]}
     lines = [
-        f"# 短线侠综合导航 - {day_dir.name}",
+        f"# 综合导航 - {day_dir.name}",
         "",
         f"{DASHBOARD_META_PREFIX}{compact_json(meta)}{META_SUFFIX}",
         "",
         f"> 生成时间：{now_text()}",
         "> 使用方式：手动点击数据文件查看原始导出，再点击 AI 解析入口执行后续分析。",
         "",
-        "| 页面 | 数据文件 | 来源页面 | 说明 | AI 解析 |",
-        "| --- | --- | --- | --- | --- |",
+        "| 页面 | 数据文件 | 说明 | AI 解析 |",
+        "| --- | --- | --- | --- |",
     ]
     for result in results:
         meta_item = TARGET_METADATA[result.target]
@@ -564,7 +665,7 @@ def build_dashboard(day_dir: Path, results: list[ExportResult], dashboard_file_n
         note = result.note
         if result.row_count is not None:
             note = f"{note}，记录数 {result.row_count}" if note else f"记录数 {result.row_count}"
-        lines.append(f"| {meta_item['label']} | {data_link} | {meta_item['page']} | {escape_md(note)} | {ai_link} |")
+        lines.append(f"| {meta_item['label']} | {data_link} | {escape_md(note)} | {ai_link} |")
     lines.extend(["", "## 快速入口", "", f"- {markdown_link('AI 解析总入口', ai_path, day_dir)}", ""])
     write_text(dashboard_path, "\n".join(lines))
     return dashboard_path
@@ -584,7 +685,7 @@ def rebuild_summary(output_root: Path, summary_file_name: str, dashboard_file_na
             entries.append(meta)
     entries.sort(key=lambda item: item["date"], reverse=True)
     lines = [
-        "# 短线侠综合导出汇总",
+        "# 综合导出汇总",
         "",
         f"> 重建时间：{now_text()}",
         "",
