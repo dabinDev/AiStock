@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import importlib
 import os
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -52,7 +51,7 @@ def host_target() -> str:
         return "windows"
     if sys.platform.startswith("linux"):
         return "linux"
-    raise SystemExit(f"当前主机平台暂不支持打包：{sys.platform}")
+    raise SystemExit(f"当前宿主平台暂不支持打包: {sys.platform}")
 
 
 def add_data_arg(path: Path) -> str:
@@ -66,6 +65,13 @@ def module_available(module_name: str) -> bool:
     except Exception:
         return False
     return True
+
+
+def ensure_pyinstaller_available() -> None:
+    try:
+        import PyInstaller  # noqa: F401
+    except Exception as exc:
+        raise SystemExit("未安装 PyInstaller，请先执行 python -m pip install pyinstaller") from exc
 
 
 def artifact_name(target: str, app_name: str = APP_NAME) -> str:
@@ -83,13 +89,11 @@ def build_bundle(
 ) -> int:
     current_host = host_target()
     if target != current_host:
-        raise SystemExit(f"当前主机只能构建 {current_host} 版本，不能直接构建 {target} 版本")
+        raise SystemExit(f"当前宿主机只能构建 {current_host} 版本，不能直接构建 {target} 版本")
     if not ENTRY.exists():
         raise SystemExit(f"未找到入口脚本: {ENTRY}")
 
-    pyinstaller = shutil.which("pyinstaller")
-    if not pyinstaller:
-        raise SystemExit("未安装 PyInstaller，请先执行 pip install pyinstaller")
+    ensure_pyinstaller_available()
 
     if dist_dir is None:
         dist_dir = DIST_DIR / target
@@ -106,7 +110,9 @@ def build_bundle(
             hidden_imports.append(module_name)
 
     command = [
-        pyinstaller,
+        sys.executable,
+        "-m",
+        "PyInstaller",
         "--noconfirm",
         "--clean",
         "--onefile",

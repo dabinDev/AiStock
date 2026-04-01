@@ -40,6 +40,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install pyinstaller requests playwright
+          python -c "import sys, importlib.metadata as md, PyInstaller; print('python=', sys.executable); print('pyinstaller_module=', PyInstaller.__file__); print('pyinstaller_version=', md.version('pyinstaller')); print('requests_version=', md.version('requests')); print('playwright_version=', md.version('playwright'))"
 
       - name: Build Windows bundle
         shell: pwsh
