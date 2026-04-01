@@ -1,0 +1,138 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import importlib
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+ENTRY = ROOT / "scripts" / "run_kanpan_tool.py"
+DIST_DIR = ROOT / "dist"
+BUILD_DIR = ROOT / "build"
+APP_NAME = "AstockKanpan"
+ICON_FILE = ROOT / "scripts" / "assets" / "astock-kanpan.ico"
+RUNTIME_DIRS = [
+    ROOT / "kanpan-tool",
+    ROOT / "market-overview-exporter",
+    ROOT / "duanxian-jingjia-exporter",
+    ROOT / "duanxian-workflow",
+    ROOT / "duanxian-yidong-pool",
+]
+BASE_HIDDEN_IMPORTS = [
+    "uuid",
+    "ctypes",
+    "ctypes.wintypes",
+    "json",
+    "threading",
+    "subprocess",
+    "http.server",
+    "urllib.parse",
+    "urllib.request",
+    "requests",
+    "playwright",
+    "playwright.sync_api",
+    "zoneinfo",
+]
+OPTIONAL_HIDDEN_IMPORTS = [
+    "tkinter",
+    "tkinter.messagebox",
+]
+COLLECT_PACKAGES = [
+    "requests",
+    "playwright",
+]
+
+
+def host_target() -> str:
+    if os.name == "nt":
+        return "windows"
+    if sys.platform.startswith("linux"):
+        return "linux"
+    raise SystemExit(f"当前主机平台暂不支持打包：{sys.platform}")
+
+
+def add_data_arg(path: Path) -> str:
+    separator = ";" if os.name == "nt" else ":"
+    return f"{path}{separator}{path.name}"
+
+
+def module_available(module_name: str) -> bool:
+    try:
+        importlib.import_module(module_name)
+    except Exception:
+        return False
+    return True
+
+
+def artifact_name(target: str, app_name: str = APP_NAME) -> str:
+    return app_name + (".exe" if target == "windows" else "")
+
+
+def build_bundle(
+    target: str,
+    *,
+    app_name: str = APP_NAME,
+    dist_dir: Path | None = None,
+    work_dir: Path | None = None,
+    spec_dir: Path | None = None,
+    console: bool | None = None,
+) -> int:
+    current_host = host_target()
+    if target != current_host:
+        raise SystemExit(f"当前主机只能构建 {current_host} 版本，不能直接构建 {target} 版本")
+    if not ENTRY.exists():
+        raise SystemExit(f"未找到入口脚本: {ENTRY}")
+
+    pyinstaller = shutil.which("pyinstaller")
+    if not pyinstaller:
+        raise SystemExit("未安装 PyInstaller，请先执行 pip install pyinstaller")
+
+    if dist_dir is None:
+        dist_dir = DIST_DIR / target
+    if work_dir is None:
+        work_dir = BUILD_DIR / "pyinstaller" / target
+    if spec_dir is None:
+        spec_dir = BUILD_DIR / "spec" / target
+    if console is None:
+        console = target != "windows"
+
+    hidden_imports = list(BASE_HIDDEN_IMPORTS)
+    for module_name in OPTIONAL_HIDDEN_IMPORTS:
+        if module_available(module_name):
+            hidden_imports.append(module_name)
+
+    command = [
+        pyinstaller,
+        "--noconfirm",
+        "--clean",
+        "--onefile",
+        "--name",
+        app_name,
+        "--distpath",
+        str(dist_dir),
+        "--workpath",
+        str(work_dir),
+        "--specpath",
+        str(spec_dir),
+    ]
+    if not console:
+        command.append("--noconsole")
+    if target == "windows" and ICON_FILE.exists():
+        command.extend(["--icon", str(ICON_FILE)])
+    for runtime_dir in RUNTIME_DIRS:
+        if runtime_dir.exists():
+            command.extend(["--add-data", add_data_arg(runtime_dir)])
+    for hidden_import in hidden_imports:
+        command.extend(["--hidden-import", hidden_import])
+    for package_name in COLLECT_PACKAGES:
+        command.extend(["--collect-all", package_name])
+    command.append(str(ENTRY))
+
+    completed = subprocess.run(command, check=False)
+    if completed.returncode == 0:
+        print(f"构建完成: {dist_dir / artifact_name(target, app_name)}")
+    return completed.returncode

@@ -1138,7 +1138,7 @@
       if (cardDescs[2]) cardDescs[2].textContent = "抓取完成后自动生成，可手改后重跑。";
       if (cardDescs[3]) cardDescs[3].textContent = "把重点留给结构化结论和表格。";
 
-      setNodeText("button[onclick=\"copyPrompt()\"]", "复制");
+      setNodeText("button[onclick=\"copyPrompt()\"]", "复制全文");
       setNodeText("button[onclick=\"resetPrompt()\"]", "恢复");
       setNodeText("button[onclick=\"reanalyzeWithEditedPrompt()\"]", "重跑");
       setNodeText("button[onclick=\"copyAnalysisSnapshot()\"]", "复制截图");
@@ -2292,17 +2292,40 @@
       });
     }
 
+    async function writeTextToClipboard(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+
+      const helper = document.createElement("textarea");
+      helper.value = text;
+      helper.setAttribute("readonly", "readonly");
+      helper.style.position = "fixed";
+      helper.style.top = "-9999px";
+      helper.style.left = "-9999px";
+      document.body.appendChild(helper);
+      helper.focus();
+      helper.select();
+      const copied = document.execCommand("copy");
+      document.body.removeChild(helper);
+      if (!copied) {
+        throw new Error("复制失败，请检查浏览器权限");
+      }
+    }
+
     async function copyPrompt() {
-      const text = document.getElementById("promptEditor").value;
+      const editorValue = document.getElementById("promptEditor").value;
+      const text = editorValue || lastPrompt;
       if (!text || text === "尚未生成 AI 提示词。") {
         setStatus("当前没有可复制的提示词");
         return;
       }
       try {
-        await navigator.clipboard.writeText(text);
-        setStatus("提示词已复制", true);
-      } catch {
-        setStatus("复制失败，请检查浏览器权限");
+        await writeTextToClipboard(text);
+        setStatus("提示词全文已复制", true);
+      } catch (err) {
+        setStatus(err && err.message ? err.message : "复制失败，请检查浏览器权限");
       }
     }
 

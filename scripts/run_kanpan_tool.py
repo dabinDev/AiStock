@@ -15,8 +15,12 @@ from pathlib import Path
 from urllib.error import URLError
 from urllib.request import urlopen
 
-import tkinter as tk
-from tkinter import messagebox
+try:
+    import tkinter as tk
+    from tkinter import messagebox
+except Exception:  # pragma: no cover - Linux/无桌面环境允许缺少 Tk
+    tk = None
+    messagebox = None
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -110,6 +114,24 @@ def apply_runtime_env() -> None:
 
 def is_background_runtime() -> bool:
     return bool(os.environ.get("ASTOCK_EMBEDDED_SCRIPT", "").strip()) or os.environ.get("ASTOCK_SERVER_MODE", "").strip() == "1"
+
+
+def desktop_ui_available() -> bool:
+    if tk is None or messagebox is None:
+        return False
+    if os.name == "nt":
+        return True
+    return bool(os.getenv("DISPLAY") or os.getenv("WAYLAND_DISPLAY") or os.getenv("MIR_SOCKET"))
+
+
+def show_error(title: str, message: str) -> None:
+    if desktop_ui_available():
+        try:
+            messagebox.showerror(title, message)
+            return
+        except Exception:
+            pass
+    print(f"{title}: {message}", file=sys.stderr, flush=True)
 
 
 def dispatch_embedded_script() -> bool:
@@ -340,6 +362,17 @@ def open_launcher_window(port: int, process: subprocess.Popen[str]) -> int:
     return 0
 
 
+def open_console_launcher(port: int, process: subprocess.Popen[str]) -> int:
+    address = f"http://127.0.0.1:{port}/"
+    print(f"看盘服务已启动：{address}", flush=True)
+    print(f"后台进程 PID：{process.pid}", flush=True)
+    try:
+        webbrowser.open(address)
+    except Exception:
+        pass
+    return 0
+
+
 def run_launcher_mode() -> int:
     port = pick_port()
     process = spawn_server(port)
@@ -347,8 +380,10 @@ def run_launcher_mode() -> int:
         wait_for_server(f"http://127.0.0.1:{port}/api/state")
     except Exception as exc:
         terminate_process(process)
-        messagebox.showerror("启动失败", f"本地服务启动失败。\n\n{exc}")
+        show_error("启动失败", f"本地服务启动失败。\n\n{exc}")
         return 1
+    if not desktop_ui_available():
+        return open_console_launcher(port, process)
     return open_launcher_window(port, process)
 
 
@@ -365,10 +400,7 @@ def main() -> int:
         if is_background_runtime():
             print(formatted, file=sys.stderr, flush=True)
             return 1
-        try:
-            messagebox.showerror("运行失败", f"程序运行失败。\n\n{exc}")
-        except Exception:
-            pass
+        show_error("运行失败", f"程序运行失败。\n\n{exc}")
         return 1
 
 

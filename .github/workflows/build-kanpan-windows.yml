@@ -1,0 +1,54 @@
+name: Build Kanpan Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - new-v
+    paths:
+      - "scripts/build_kanpan_bundle.py"
+      - "scripts/build_kanpan_exe.py"
+      - "scripts/run_kanpan_tool.py"
+      - "kanpan-tool/**"
+      - "market-overview-exporter/**"
+      - "duanxian-jingjia-exporter/**"
+      - "duanxian-workflow/**"
+      - "duanxian-yidong-pool/**"
+      - ".github/workflows/build-kanpan-windows.yml"
+      - ".github/workflows/build-kanpan-linux.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller requests playwright
+
+      - name: Build Windows bundle
+        shell: pwsh
+        run: |
+          python scripts/build_kanpan_exe.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AstockKanpan-windows-x64
+          path: dist/AstockKanpan.exe
+          if-no-files-found: error
+          retention-days: 7

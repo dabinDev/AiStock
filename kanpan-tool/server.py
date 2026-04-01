@@ -530,7 +530,14 @@ def resolve_prompt_preset(preset: str | None) -> str:
     return key if key in PROMPT_PRESETS else "default"
 
 
-def build_prompt(date_text: str, targets: list[str], prompt_override: str | None = None, preset: str | None = None) -> str:
+def build_prompt(
+    date_text: str,
+    targets: list[str],
+    prompt_override: str | None = None,
+    preset: str | None = None,
+    max_chars: int | None = 80000,
+    per_target_limit: int | None = 15000,
+) -> str:
     if prompt_override and prompt_override.strip():
         return prompt_override.strip()
 
@@ -549,14 +556,19 @@ def build_prompt(date_text: str, targets: list[str], prompt_override: str | None
     if spec.get("notes"):
         parts.append("")
     total_chars = 0
-    max_chars = 80000
     for target in targets:
         meta = TARGETS[target]
         content = sanitize_text(read_file(date_text, meta["file"]))
-        budget = min(15000, max_chars - total_chars)
-        if budget <= 0:
-            break
-        clipped = content[:budget]
+        clipped = content
+        if max_chars is not None:
+            budget = max_chars - total_chars
+            if per_target_limit is not None:
+                budget = min(per_target_limit, budget)
+            if budget <= 0:
+                break
+            clipped = content[:budget]
+        elif per_target_limit is not None:
+            clipped = content[:per_target_limit]
         total_chars += len(clipped)
         parts.append(f"### 数据模块：{meta['label']}")
         parts.append(clipped)
@@ -565,12 +577,51 @@ def build_prompt(date_text: str, targets: list[str], prompt_override: str | None
     return "\n".join(parts)
 
 
+def compact_prompt_for_kimi(prompt: str, max_chars: int = 24000, section_limit: int = 5200) -> str:
+    text = (prompt or "").strip()
+    if len(text) <= max_chars:
+        return text
+
+    marker = "### 数据模块："
+    notice_template = "\n\n[已为 Kimi 压缩过长提示词，原始长度 {original} 字符，发送长度 {current} 字符]"
+
+    if marker not in text:
+        reserved = len(notice_template.format(original=len(text), current=max_chars))
+        clipped = text[: max(0, max_chars - reserved)]
+        notice = notice_template.format(original=len(text), current=len(clipped))
+        return clipped.rstrip() + notice
+
+    intro, *sections = text.split(marker)
+    intro = intro.strip()
+    remaining_budget = max_chars - len(intro) - 2
+    kept_sections: list[str] = []
+
+    for index, raw_section in enumerate(sections):
+        if remaining_budget <= 0:
+            break
+        section_text = f"{marker}{raw_section.strip()}"
+        reserve_for_tail = max(0, len(sections) - index - 1) * 120
+        allowed = min(section_limit, max(240, remaining_budget - reserve_for_tail))
+        clipped = section_text[:allowed].rstrip()
+        kept_sections.append(clipped)
+        remaining_budget -= len(clipped) + 2
+
+    compacted = intro
+    if kept_sections:
+        compacted = intro + "\n\n" + "\n\n".join(kept_sections)
+    notice = notice_template.format(original=len(text), current=len(compacted))
+    allowed_notice_budget = max_chars - len(notice)
+    compacted = compacted[:allowed_notice_budget].rstrip()
+    notice = notice_template.format(original=len(text), current=len(compacted))
+    return compacted + notice
+
+
 def call_kimi(api_key: str, model: str, prompt: str) -> str:
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
-    payload = {
+    base_payload = {
         "model": model,
         "messages": [
             {
@@ -582,29 +633,44 @@ def call_kimi(api_key: str, model: str, prompt: str) -> str:
                     "语言要求克制、结构化、基于证据，不模仿任何网络作者风格，也不提及任何来源作者。"
                 ),
             },
-            {"role": "user", "content": prompt},
         ],
         "temperature": 1,
     }
+    prompt_candidates = [prompt]
+    compact_prompt = compact_prompt_for_kimi(prompt)
+    if compact_prompt != prompt:
+        prompt_candidates.append(compact_prompt)
     last_error: Exception | None = None
-    for attempt in range(1, 3):
-        try:
-            response = requests.post(KIMI_BASE_URL, headers=headers, json=payload, timeout=300)
-            response.raise_for_status()
-            data = response.json()
-            return data["choices"][0]["message"]["content"]
-        except requests.HTTPError as exc:  
-            response_text = ""
-            if exc.response is not None:
-                response_text = exc.response.text.strip()
-            detail = f"HTTP {exc.response.status_code}: {response_text}" if exc.response is not None and response_text else str(exc)
-            last_error = RuntimeError(detail)
-            if attempt == 2:
-                break
-        except Exception as exc:  
-            last_error = exc
-            if attempt == 2:
-                break
+    for index, candidate_prompt in enumerate(prompt_candidates):
+        payload = dict(base_payload)
+        payload["messages"] = [*base_payload["messages"], {"role": "user", "content": candidate_prompt}]
+        for attempt in range(1, 3):
+            try:
+                response = requests.post(KIMI_BASE_URL, headers=headers, json=payload, timeout=300)
+                response.raise_for_status()
+                data = response.json()
+                return data["choices"][0]["message"]["content"]
+            except requests.HTTPError as exc:  
+                response_text = ""
+                if exc.response is not None:
+                    response_text = exc.response.text.strip()
+                detail = f"HTTP {exc.response.status_code}: {response_text}" if exc.response is not None and response_text else str(exc)
+                detail = f"{detail} (prompt_length={len(prompt)}, api_prompt_length={len(candidate_prompt)})"
+                last_error = RuntimeError(detail)
+                is_last_candidate = index == len(prompt_candidates) - 1
+                lower_text = response_text.lower()
+                prompt_too_long = any(
+                    keyword in lower_text
+                    for keyword in ("context", "token", "too long", "maximum", "max length", "prompt")
+                )
+                if prompt_too_long and not is_last_candidate:
+                    break
+                if attempt == 2:
+                    break
+            except Exception as exc:  
+                last_error = exc
+                if attempt == 2:
+                    break
     assert last_error is not None
     raise last_error
 
@@ -620,7 +686,14 @@ def build_prompt_payload(
     if missing:
         raise RuntimeError(f"以下标签尚未抓取成功：{'、'.join(missing)}")
     preset_key = resolve_prompt_preset(preset)
-    prompt = build_prompt(date_text, targets, prompt_override=prompt_override, preset=preset_key)
+    prompt = build_prompt(
+        date_text,
+        targets,
+        prompt_override=prompt_override,
+        preset=preset_key,
+        max_chars=None,
+        per_target_limit=None,
+    )
     return {
         "date": date_text,
         "targets": targets,
@@ -864,8 +937,16 @@ def start_analyze_job(
             if missing:
                 raise RuntimeError(f"以下标签尚未抓取成功：{'、'.join(missing)}")
 
-            prompt = build_prompt(date_text, targets, prompt_override=prompt_override, preset=preset)
+            prompt = build_prompt(
+                date_text,
+                targets,
+                prompt_override=prompt_override,
+                preset=preset,
+                max_chars=None,
+                per_target_limit=None,
+            )
             append_job_log(job_id, f"提示词长度：{len(prompt)} 字符")
+            append_job_log(job_id, f"Kimi 发送长度：{len(prompt)} 字符")
             append_job_log(job_id, "调用 Kimi API")
             for target in targets:
                 set_job_target_status(job_id, target, "analyzing")

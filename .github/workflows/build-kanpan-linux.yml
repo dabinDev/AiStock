@@ -1,0 +1,57 @@
+name: Build Kanpan Linux
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - new-v
+    paths:
+      - "scripts/build_kanpan_bundle.py"
+      - "scripts/build_kanpan_linux.py"
+      - "scripts/run_kanpan_tool.py"
+      - "kanpan-tool/**"
+      - "market-overview-exporter/**"
+      - "duanxian-jingjia-exporter/**"
+      - "duanxian-workflow/**"
+      - "duanxian-yidong-pool/**"
+      - ".github/workflows/build-kanpan-windows.yml"
+      - ".github/workflows/build-kanpan-linux.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller requests playwright
+
+      - name: Build Linux bundle
+        run: |
+          python scripts/build_kanpan_linux.py
+
+      - name: Pack artifact
+        run: |
+          chmod +x dist/linux/AstockKanpan
+          tar -C dist/linux -czf dist/AstockKanpan-linux-x64.tar.gz AstockKanpan
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AstockKanpan-linux-x64
+          path: dist/AstockKanpan-linux-x64.tar.gz
+          if-no-files-found: error
+          retention-days: 7
