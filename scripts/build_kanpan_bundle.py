@@ -51,7 +51,7 @@ def host_target() -> str:
         return "windows"
     if sys.platform.startswith("linux"):
         return "linux"
-    raise SystemExit(f"当前宿主平台暂不支持打包: {sys.platform}")
+    raise SystemExit(f"Unsupported host platform for packaging: {sys.platform}")
 
 
 def add_data_arg(path: Path) -> str:
@@ -71,7 +71,7 @@ def ensure_pyinstaller_available() -> None:
     try:
         import PyInstaller  # noqa: F401
     except Exception as exc:
-        raise SystemExit("未安装 PyInstaller，请先执行 python -m pip install pyinstaller") from exc
+        raise SystemExit("PyInstaller is not installed. Run: python -m pip install pyinstaller") from exc
 
 
 def artifact_name(target: str, app_name: str = APP_NAME) -> str:
@@ -89,9 +89,9 @@ def build_bundle(
 ) -> int:
     current_host = host_target()
     if target != current_host:
-        raise SystemExit(f"当前宿主机只能构建 {current_host} 版本，不能直接构建 {target} 版本")
+        raise SystemExit(f"Cannot build {target} on host {current_host}")
     if not ENTRY.exists():
-        raise SystemExit(f"未找到入口脚本: {ENTRY}")
+        raise SystemExit(f"Entry script not found: {ENTRY}")
 
     ensure_pyinstaller_available()
 
@@ -140,5 +140,5 @@ def build_bundle(
 
     completed = subprocess.run(command, check=False)
     if completed.returncode == 0:
-        print(f"构建完成: {dist_dir / artifact_name(target, app_name)}")
+        print(f"Build complete: {dist_dir / artifact_name(target, app_name)}")
     return completed.returncode
