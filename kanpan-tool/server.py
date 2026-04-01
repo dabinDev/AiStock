@@ -31,7 +31,7 @@ CONFIG_ROOT = APP_ROOT / ".local-config"
 SETTINGS_FILE = CONFIG_ROOT / "terminal-settings.json"
 DEFAULT_PORT = 8765
 DEFAULT_MODEL = "kimi-k2.5"
-KIMI_BASE_URL = "https://api.moonshot.ai/v1/chat/completions"
+KIMI_BASE_URL = "https://api.moonshot.cn/v1/chat/completions"
 
 ANALYSIS_FRAMEWORK = """
 分析框架要求：
@@ -353,16 +353,18 @@ def load_settings() -> dict[str, str]:
     }
 
 
-def save_settings(kimi_key: str, kimi_model: str) -> dict[str, str]:
+def save_settings(kimi_key: str, kimi_model: str, keep_existing_key: bool = False) -> dict[str, str]:
     CONFIG_ROOT.mkdir(parents=True, exist_ok=True)
+    existing = load_settings() if SETTINGS_FILE.exists() else {"kimi_key": "", "kimi_model": DEFAULT_MODEL}
+    effective_key = existing["kimi_key"] if keep_existing_key and not kimi_key.strip() else kimi_key.strip()
     payload = {
-        "kimi_key": protect_secret(kimi_key.strip()) if kimi_key.strip() else "",
+        "kimi_key": protect_secret(effective_key) if effective_key else "",
         "kimi_model": kimi_model.strip() or DEFAULT_MODEL,
         "updated_at": now_text(),
     }
     SETTINGS_FILE.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
     return {
-        "kimi_key": kimi_key.strip(),
+        "kimi_key": effective_key,
         "kimi_model": payload["kimi_model"],
     }
 
@@ -372,6 +374,14 @@ def masked_key(value: str) -> str:
     if len(cleaned) <= 8:
         return "*" * len(cleaned)
     return cleaned[:4] + "*" * (len(cleaned) - 8) + cleaned[-4:]
+
+
+def resolve_kimi_key(api_key: str | None, stored_key: str | None = None) -> str:
+    return (
+        (api_key or "").strip()
+        or (stored_key or "").strip()
+        or os.getenv("MOONSHOT_API_KEY", "").strip()
+    )
 
 
 def collect_target_contents(date_text: str, targets: list[str]) -> list[dict[str, str]]:
@@ -409,25 +419,114 @@ def export_command(date_text: str, target: str) -> list[str]:
     return [sys.executable, str(EXPORT_SCRIPT), "--output-root", str(DATA_ROOT), "--date", date_text, "--targets", target]
 
 
-def build_prompt(date_text: str, targets: list[str], prompt_override: str | None = None) -> str:
+PROMPT_PRESETS: dict[str, dict[str, Any]] = {
+    "default": {
+        "intro": "你是一名 A 股短线复盘分析助手，请基于 {date_text} 的以下数据做结构化分析。",
+        "framework": ANALYSIS_FRAMEWORK,
+        "sections": [
+            "一、市场周期定位",
+            "二、情绪与赚钱效应",
+            "三、主线、支线与轮动结构",
+            "四、核心个股、龙头梯队与补涨关系",
+            "五、竞价到盘中的关键信号验证",
+            "六、风险点与失败信号",
+            "七、次日预案（走强 / 分歧 / 退潮）",
+            "八、一句话结论",
+        ],
+        "notes": [
+            "如果数据之间出现冲突，优先解释冲突而不是强行下结论。",
+            "只基于已给出的标签数据判断，不要脑补未抓取模块。",
+        ],
+    },
+    "open": {
+        "intro": "你是一名 A 股短线盘前解析助手，请基于 {date_text} 开盘前已抓取的数据给出盘前预期。",
+        "framework": "\n".join(
+            [
+                "分析要求：",
+                "1. 只围绕竞价封单、竞价异动、竞价抢筹判断开盘预期，不扩展到未提供的数据。",
+                "2. 先判断整体竞价情绪，再判断核心方向是否超预期或低于预期。",
+                "3. 明确指出哪些信号适合开盘后继续验证，哪些信号需要谨慎。",
+                "4. 不给买卖指令，不承诺收益，只输出盘前预期和验证点。",
+            ]
+        ),
+        "sections": [
+            "一、盘前情绪温度",
+            "二、竞价最强方向与最强个股",
+            "三、超预期 / 低于预期信号",
+            "四、开盘后第一观察点",
+            "五、盘前风险提醒",
+            "六、一句话盘前结论",
+        ],
+        "notes": [
+            "如果竞价数据不足以支持明确结论，要直接说明不确定性来源。",
+        ],
+    },
+    "intraday": {
+        "intro": "你是一名 A 股短线盘中预期分析助手，请基于 {date_text} 当前已抓取的数据判断盘中结构与后续预期。",
+        "framework": "\n".join(
+            [
+                "分析要求：",
+                "1. 结合竞价、抢筹、连板梯队和异动播报，判断当前主线强弱与市场承接。",
+                "2. 要区分已经验证的信号、正在强化的信号、可能失败的信号。",
+                "3. 输出午后或后续盘中观察重点，不做确定性结论包装。",
+                "4. 结论必须贴合盘中节奏，避免写成盘后复盘。",
+            ]
+        ),
+        "sections": [
+            "一、当前情绪与承接状态",
+            "二、连板梯队与核心个股强弱",
+            "三、异动信号是否形成主线验证",
+            "四、后续盘中预期与观察点",
+            "五、风险点与失败信号",
+            "六、一句话盘中结论",
+        ],
+        "notes": [
+            "若标签之间信息冲突，请明确指出最值得相信的那一条证据链。",
+        ],
+    },
+    "close": {
+        "intro": "你是一名 A 股短线盘后复盘助手，请基于 {date_text} 的全量数据给出完整复盘和次日预案。",
+        "framework": ANALYSIS_FRAMEWORK,
+        "sections": [
+            "一、市场周期定位",
+            "二、情绪修复 / 分歧 / 退潮判断",
+            "三、主线、支线与轮动结构",
+            "四、龙头梯队、补涨与掉队关系",
+            "五、竞价到收盘的关键验证链",
+            "六、风险点与失败信号",
+            "七、次日预案（走强 / 分歧 / 退潮）",
+            "八、一句话盘后结论",
+        ],
+        "notes": [
+            "盘后复盘需要把日内节奏和次日预案连起来，不要只做静态总结。",
+        ],
+    },
+}
+
+
+def resolve_prompt_preset(preset: str | None) -> str:
+    key = (preset or "default").strip().lower()
+    return key if key in PROMPT_PRESETS else "default"
+
+
+def build_prompt(date_text: str, targets: list[str], prompt_override: str | None = None, preset: str | None = None) -> str:
     if prompt_override and prompt_override.strip():
         return prompt_override.strip()
 
+    preset_key = resolve_prompt_preset(preset)
+    spec = PROMPT_PRESETS[preset_key]
     parts = [
-        f"你是一名 A 股短线复盘分析助手，请基于 {date_text} 的以下数据做结构化分析。",
-        ANALYSIS_FRAMEWORK,
+        str(spec["intro"]).format(date_text=date_text),
+        str(spec["framework"]),
         "",
         "固定输出章节：",
-        "一、市场周期定位",
-        "二、情绪与赚钱效应",
-        "三、主线、支线与轮动结构",
-        "四、核心个股、龙头梯队与补涨关系",
-        "五、竞价到盘中的关键信号验证",
-        "六、风险点与失败信号",
-        "七、次日预案（走强 / 分歧 / 退潮）",
-        "八、一句话结论",
+        *[str(section) for section in spec["sections"]],
         "",
     ]
+    for note in spec.get("notes", []):
+        parts.append(f"- {note}")
+    if spec.get("notes"):
+        parts.append("")
     total_chars = 0
     max_chars = 80000
     for target in targets:
@@ -464,7 +563,7 @@ def call_kimi(api_key: str, model: str, prompt: str) -> str:
             },
             {"role": "user", "content": prompt},
         ],
-        "temperature": 0.1,
+        "temperature": 1,
     }
     last_error: Exception | None = None
     for attempt in range(1, 3):
@@ -487,6 +586,27 @@ def call_kimi(api_key: str, model: str, prompt: str) -> str:
                 break
     assert last_error is not None
     raise last_error
+
+
+def build_prompt_payload(
+    date_text: str,
+    targets: list[str],
+    prompt_override: str | None = None,
+    preset: str | None = None,
+) -> dict[str, Any]:
+    target_data = collect_target_contents(date_text, targets)
+    missing = [item["label"] for item in target_data if item["exists"] != "true"]
+    if missing:
+        raise RuntimeError(f"以下标签尚未抓取成功：{'、'.join(missing)}")
+    preset_key = resolve_prompt_preset(preset)
+    prompt = build_prompt(date_text, targets, prompt_override=prompt_override, preset=preset_key)
+    return {
+        "date": date_text,
+        "targets": targets,
+        "prompt": prompt,
+        "preset": preset_key,
+        "available_count": len(target_data),
+    }
 
 
 def save_analysis(date_text: str, slug: str, content: str) -> str:
@@ -704,6 +824,7 @@ def start_analyze_job(
     api_key: str | None,
     model: str | None,
     prompt_override: str | None = None,
+    preset: str | None = None,
 ) -> str:
     job_id = create_job("analyze", f"{date_text} Kimi解析 {format_target_labels(targets)}", {"date": date_text, "targets": targets})
 
@@ -712,9 +833,9 @@ def start_analyze_job(
         prompt = ""
         resolved_model = (model or "").strip() or DEFAULT_MODEL
         try:
-            resolved_key = (api_key or "").strip() or os.getenv("MOONSHOT_API_KEY", "").strip()
+            resolved_key = resolve_kimi_key(api_key)
             if not resolved_key:
-                raise RuntimeError("未配置 MOONSHOT_API_KEY，也未在页面中填写 Kimi API Key。")
+                raise RuntimeError("未配置 Kimi API Key。请在左侧填写后保存，或设置环境变量 MOONSHOT_API_KEY。")
 
             append_job_log(job_id, f"使用模型：{resolved_model}")
             append_job_log(job_id, "读取所选标签数据")
@@ -726,7 +847,7 @@ def start_analyze_job(
             if missing:
                 raise RuntimeError(f"以下标签尚未抓取成功：{'、'.join(missing)}")
 
-            prompt = build_prompt(date_text, targets, prompt_override=prompt_override)
+            prompt = build_prompt(date_text, targets, prompt_override=prompt_override, preset=preset)
             append_job_log(job_id, f"提示词长度：{len(prompt)} 字符")
             append_job_log(job_id, "调用 Kimi API")
             for target in targets:
@@ -749,6 +870,7 @@ def start_analyze_job(
                     "analysis": analysis,
                     "model": resolved_model,
                     "analysis_file": file_name,
+                    "preset": resolve_prompt_preset(preset),
                 },
             )
         except Exception as exc:
@@ -766,6 +888,7 @@ def start_analyze_job(
                     "analysis": "",
                     "model": resolved_model,
                     "analysis_file": "",
+                    "preset": resolve_prompt_preset(preset),
                 },
                 error=str(exc),
             )
@@ -791,6 +914,8 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path == "/api/fetch":
             return self._handle_fetch()
+        if parsed.path == "/api/prompt":
+            return self._handle_prompt()
         if parsed.path == "/api/analyze":
             return self._handle_analyze()
         if parsed.path == "/api/settings":
@@ -860,6 +985,7 @@ class Handler(BaseHTTPRequestHandler):
             settings = save_settings(
                 str(payload.get("kimi_key", "") or ""),
                 str(payload.get("kimi_model", "") or DEFAULT_MODEL),
+                bool(payload.get("keep_existing_key")),
             )
             self._send_json(
                 {
@@ -869,6 +995,24 @@ class Handler(BaseHTTPRequestHandler):
                     "kimiKeyMask": masked_key(settings["kimi_key"]) if settings["kimi_key"] else "",
                 }
             )
+        except Exception as exc:
+            self._send_json({"error": str(exc)}, status=400)
+
+    def _handle_prompt(self) -> None:
+        try:
+            payload = self._read_json()
+            date_text = normalize_date(payload.get("date"))
+            targets = payload.get("targets") or TARGET_ORDER
+            for target in targets:
+                if target not in TARGETS:
+                    raise ValueError("存在无法识别的提示词标签")
+            data = build_prompt_payload(
+                date_text,
+                targets,
+                prompt_override=str(payload.get("prompt_override", "") or "") or None,
+                preset=str(payload.get("preset", "") or "") or None,
+            )
+            self._send_json(data)
         except Exception as exc:
             self._send_json({"error": str(exc)}, status=400)
 
@@ -906,12 +1050,16 @@ class Handler(BaseHTTPRequestHandler):
                 if target not in TARGETS:
                     raise ValueError("存在无法识别的解析标签")
             settings = load_settings()
+            resolved_key = resolve_kimi_key(payload.get("api_key"), settings["kimi_key"])
+            if not resolved_key:
+                raise RuntimeError("未配置 Kimi API Key。请在左侧填写后保存，或设置环境变量 MOONSHOT_API_KEY。")
             job_id = start_analyze_job(
                 date_text,
                 targets,
-                payload.get("api_key") or settings["kimi_key"],
+                resolved_key,
                 payload.get("model") or settings["kimi_model"],
                 payload.get("prompt_override"),
+                payload.get("preset"),
             )
             self._send_json({"job_id": job_id})
         except Exception as exc:

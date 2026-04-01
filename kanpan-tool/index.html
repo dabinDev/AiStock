@@ -6,90 +6,108 @@
   <title>A股复盘交易台</title>
   <style>
     :root {
-      --bg: #0f1722;
-      --panel: rgba(12, 20, 32, 0.92);
-      --panel-2: rgba(17, 27, 42, 0.92);
-      --line: rgba(122, 148, 182, 0.22);
-      --line-strong: rgba(122, 148, 182, 0.4);
-      --text: #e7eef7;
-      --muted: #8fa2ba;
-      --accent: #f2543d;
-      --accent-2: #23a0c8;
-      --good: #36c187;
-      --warn: #ffb84d;
-      --shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
+      --bg: #07131b;
+      --bg-2: #0c1823;
+      --panel: rgba(10, 18, 28, 0.94);
+      --panel-2: rgba(14, 24, 36, 0.96);
+      --line: rgba(118, 142, 170, 0.18);
+      --line-strong: rgba(118, 142, 170, 0.32);
+      --text: #edf4fb;
+      --muted: #8fa5bb;
+      --accent: #ff6b3d;
+      --accent-2: #4ab8db;
+      --good: #38c78b;
+      --warn: #ffbf63;
+      --shadow: 0 22px 54px rgba(0, 0, 0, 0.28);
+      --shadow-soft: 0 14px 34px rgba(0, 0, 0, 0.2);
       --mono: "Consolas", "SFMono-Regular", "Microsoft YaHei UI", monospace;
       --sans: "Microsoft YaHei UI", "Segoe UI", sans-serif;
     }
     * { box-sizing: border-box; }
+    html { color-scheme: dark; }
     body {
       margin: 0;
+      min-height: 100vh;
+      position: relative;
       color: var(--text);
       font-family: var(--sans);
       background:
-        radial-gradient(circle at top left, rgba(242, 84, 61, 0.16), transparent 24%),
-        radial-gradient(circle at top right, rgba(35, 160, 200, 0.16), transparent 22%),
-        linear-gradient(180deg, #071019 0%, #0f1722 48%, #0b121d 100%);
+        radial-gradient(circle at top left, rgba(255, 107, 61, 0.14), transparent 22%),
+        radial-gradient(circle at 78% 0%, rgba(74, 184, 219, 0.14), transparent 20%),
+        linear-gradient(180deg, #071019 0%, #0b1722 42%, #08111a 100%);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.26), transparent 78%);
+      pointer-events: none;
     }
     .shell {
-      width: min(1680px, calc(100vw - 28px));
-      margin: 14px auto 24px;
+      position: relative;
+      z-index: 1;
+      width: min(1640px, calc(100vw - 32px));
+      margin: 18px auto 28px;
       display: grid;
-      grid-template-columns: 380px 1fr;
-      gap: 16px;
+      grid-template-columns: 350px minmax(0, 1fr);
+      gap: 18px;
     }
     .panel {
       background: linear-gradient(180deg, var(--panel), var(--panel-2));
       border: 1px solid var(--line);
-      border-radius: 22px;
+      border-radius: 24px;
       box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
     }
     .sidebar {
       position: sticky;
-      top: 14px;
+      top: 18px;
       height: fit-content;
-      padding: 16px;
+      padding: 18px;
     }
     .brand {
-      padding: 18px;
-      border-radius: 18px;
-      border: 1px solid var(--line);
+      padding: 20px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
       background:
-        linear-gradient(135deg, rgba(242, 84, 61, 0.16), transparent 56%),
-        linear-gradient(180deg, rgba(20, 31, 48, 0.96), rgba(10, 17, 28, 0.96));
+        linear-gradient(140deg, rgba(255, 107, 61, 0.14), transparent 52%),
+        linear-gradient(180deg, rgba(18, 29, 43, 0.98), rgba(7, 13, 21, 0.98));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
     .eyebrow {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 10px;
+      padding: 6px 11px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.04);
+      background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--line);
-      color: var(--muted);
-      font-size: 12px;
-      letter-spacing: .08em;
+      color: #d8e6f3;
+      font-size: 11px;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
     }
     .brand h1 {
-      margin: 14px 0 0;
-      font-size: 32px;
-      line-height: 1.05;
-      letter-spacing: .02em;
+      margin: 16px 0 0;
+      font-size: 34px;
+      line-height: 1.04;
+      letter-spacing: 0.02em;
     }
     .brand p {
       margin: 12px 0 0;
       color: var(--muted);
-      line-height: 1.75;
+      line-height: 1.78;
       font-size: 13px;
     }
     .section {
       margin-top: 14px;
-      padding: 14px;
+      padding: 16px;
       border-radius: 18px;
       border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.02);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.015));
     }
     .section h3 {
       margin: 0 0 6px;
@@ -99,7 +117,7 @@
       margin: 0;
       color: var(--muted);
       font-size: 12px;
-      line-height: 1.6;
+      line-height: 1.65;
     }
     label {
       display: block;
@@ -110,11 +128,19 @@
     input, textarea {
       width: 100%;
       border: 1px solid var(--line);
-      border-radius: 12px;
-      background: rgba(4, 10, 18, 0.7);
+      border-radius: 14px;
+      background: rgba(4, 10, 18, 0.74);
       color: var(--text);
-      padding: 11px 12px;
+      padding: 12px 13px;
       font: inherit;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    }
+    input:focus-visible,
+    textarea:focus-visible {
+      outline: none;
+      border-color: rgba(74, 184, 219, 0.52);
+      box-shadow: 0 0 0 4px rgba(74, 184, 219, 0.12);
+      background: rgba(6, 13, 22, 0.9);
     }
     .tag-grid {
       display: flex;
@@ -130,63 +156,70 @@
       color: var(--muted);
       cursor: pointer;
       font-size: 13px;
-      transition: all .18s ease;
+      transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
       user-select: none;
     }
-    .tag:hover { border-color: var(--line-strong); transform: translateY(-1px); }
-    .tag.active {
-      color: #fff5f2;
-      border-color: rgba(242, 84, 61, 0.55);
-      background: linear-gradient(180deg, rgba(242, 84, 61, 0.34), rgba(242, 84, 61, 0.18));
+    .tag:hover {
+      border-color: var(--line-strong);
+      color: #dce7f5;
+      transform: translateY(-1px);
     }
-    .button-grid, .single-grid, .prompt-actions {
+    .tag.active {
+      color: #fff7f3;
+      border-color: rgba(255, 107, 61, 0.48);
+      background: linear-gradient(180deg, rgba(255, 107, 61, 0.36), rgba(255, 107, 61, 0.16));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+    .button-grid, .single-grid, .prompt-actions, .quick-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      gap: 9px;
       margin-top: 12px;
     }
     .single-grid {
-      max-height: 240px;
+      max-height: 224px;
       overflow: auto;
     }
     .prompt-actions {
-      grid-template-columns: repeat(3, 1fr);
-      margin-top: 10px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-top: 12px;
+    }
+    .quick-grid {
+      grid-template-columns: 1fr;
     }
     button {
       border: 0;
-      border-radius: 12px;
-      padding: 11px 12px;
+      border-radius: 14px;
+      min-height: 42px;
+      padding: 11px 13px;
       cursor: pointer;
       color: var(--text);
       font: inherit;
-      transition: transform .16s ease, opacity .16s ease, box-shadow .16s ease;
+      font-weight: 600;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease, border-color 0.16s ease;
     }
-    button:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22); }
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-soft);
+    }
     button:active { transform: translateY(0); }
-    .btn-primary { background: linear-gradient(180deg, #ff694f, #cf3f2b); }
-    .btn-secondary { background: linear-gradient(180deg, #2eb8df, #177e9f); }
+    button:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 4px rgba(255, 107, 61, 0.16);
+    }
+    .btn-primary {
+      background: linear-gradient(180deg, #ff744a, #dd5230);
+    }
+    .btn-secondary {
+      background: linear-gradient(180deg, #41b4d8, #2284ab);
+    }
     .btn-ghost {
-      background: rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.045);
       border: 1px solid var(--line);
-    }
-    .progress-board {
-      display: grid;
-      gap: 8px;
-      margin-top: 12px;
-    }
-    .progress-item {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 8px;
-      align-items: center;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid var(--line);
-      background: rgba(3, 9, 16, 0.5);
     }
     .pill {
-      padding: 4px 9px;
+      width: fit-content;
+      padding: 5px 10px;
       border-radius: 999px;
       font-size: 12px;
       white-space: nowrap;
@@ -194,42 +227,64 @@
       color: var(--muted);
     }
     .pill.pending { background: rgba(255, 255, 255, 0.06); color: var(--muted); }
-    .pill.queued, .pill.running, .pill.reading, .pill.analyzing { background: rgba(35, 160, 200, 0.18); color: #86dfff; }
-    .pill.completed { background: rgba(54, 193, 135, 0.18); color: #7eecbe; }
-    .pill.failed { background: rgba(242, 84, 61, 0.18); color: #ff9e8f; }
-    .pill.skipped { background: rgba(255, 184, 77, 0.16); color: #ffd28a; }
+    .pill.queued,
+    .pill.running,
+    .pill.reading,
+    .pill.analyzing { background: rgba(74, 184, 219, 0.18); color: #8fe6ff; }
+    .pill.completed { background: rgba(56, 199, 139, 0.18); color: #85efbf; }
+    .pill.failed { background: rgba(255, 107, 61, 0.18); color: #ffab9a; }
+    .pill.skipped { background: rgba(255, 191, 99, 0.16); color: #ffd590; }
     .main {
       display: grid;
-      grid-template-rows: auto auto 1fr;
+      grid-template-rows: auto auto auto 1fr;
       gap: 16px;
+      min-width: 0;
     }
     .hero {
       padding: 18px;
       display: grid;
-      grid-template-columns: 1.4fr 1fr;
+      grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.85fr);
       gap: 14px;
     }
     .hero-copy, .hero-metrics {
-      border-radius: 18px;
+      border-radius: 20px;
       border: 1px solid var(--line);
-      background: rgba(6, 12, 20, 0.58);
+      background: rgba(7, 13, 20, 0.66);
+      min-width: 0;
     }
     .hero-copy {
-      padding: 18px;
+      padding: 20px;
       background:
-        linear-gradient(135deg, rgba(242, 84, 61, 0.16), transparent 54%),
-        linear-gradient(180deg, rgba(7, 12, 20, 0.8), rgba(10, 16, 27, 0.82));
+        linear-gradient(135deg, rgba(255, 107, 61, 0.15), transparent 55%),
+        linear-gradient(180deg, rgba(8, 14, 22, 0.96), rgba(10, 17, 27, 0.9));
     }
     .hero-copy h2 {
-      margin: 0;
-      font-size: 30px;
-      line-height: 1.08;
+      margin: 14px 0 0;
+      font-size: 28px;
+      line-height: 1.14;
+      letter-spacing: 0.01em;
+      max-width: 14em;
     }
     .hero-copy p {
       margin: 12px 0 0;
       color: var(--muted);
       line-height: 1.75;
       font-size: 14px;
+      max-width: 58em;
+    }
+    .hero-points {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .hero-point {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      color: #e3eef9;
+      font-size: 12px;
     }
     .hero-metrics {
       padding: 14px;
@@ -241,7 +296,7 @@
       padding: 14px;
       border-radius: 16px;
       border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.03);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
     }
     .metric .label {
       font-size: 12px;
@@ -249,9 +304,10 @@
     }
     .metric .value {
       margin-top: 8px;
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 700;
       line-height: 1;
+      letter-spacing: -0.02em;
     }
     .metric .sub {
       margin-top: 8px;
@@ -263,86 +319,161 @@
       padding: 0 18px;
     }
     .top-progress-strip {
-      display: flex;
-      gap: 8px;
-      overflow: auto;
-      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+      gap: 10px;
+      padding: 14px;
       border: 1px solid var(--line);
-      border-radius: 18px;
-      background: rgba(6, 12, 20, 0.65);
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(6, 12, 20, 0.82), rgba(8, 15, 24, 0.7));
     }
     .top-progress-item {
-      min-width: 140px;
-      padding: 10px 12px;
-      border-radius: 14px;
+      min-width: 0;
+      min-height: 84px;
+      padding: 12px 14px;
+      border-radius: 16px;
       border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.03);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.025));
+      display: grid;
+      align-content: space-between;
+      gap: 12px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+    .top-progress-item.status-queued,
+    .top-progress-item.status-running,
+    .top-progress-item.status-reading,
+    .top-progress-item.status-analyzing {
+      border-color: rgba(74, 184, 219, 0.28);
+    }
+    .top-progress-item.status-completed {
+      border-color: rgba(56, 199, 139, 0.28);
+    }
+    .top-progress-item.status-failed {
+      border-color: rgba(255, 107, 61, 0.32);
+    }
+    .top-progress-item.status-skipped {
+      border-color: rgba(255, 191, 99, 0.32);
     }
     .top-progress-name {
-      margin-bottom: 8px;
       font-size: 12px;
+      line-height: 1.5;
       color: var(--muted);
     }
     .toolbar {
-      padding: 0 18px 18px;
+      padding: 0 18px;
       display: grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns: minmax(0, 1fr) auto;
       gap: 14px;
       align-items: center;
     }
     .toolbar-box {
-      padding: 15px 16px;
-      border-radius: 18px;
+      padding: 16px 18px;
+      border-radius: 20px;
       border: 1px solid var(--line);
-      background: rgba(6, 12, 20, 0.65);
+      background: rgba(6, 12, 20, 0.68);
+      display: grid;
+      gap: 10px;
     }
     .toolbar-title {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       align-items: center;
-      margin-bottom: 8px;
     }
     .toolbar-title strong {
-      font-size: 19px;
+      font-size: 20px;
     }
     .toolbar-sub {
       color: var(--muted);
       font-size: 13px;
+      line-height: 1.6;
     }
-    .status-text.ok { color: #7eecbe; }
-    .status-text.running { color: #86dfff; }
+    .toolbar-meta {
+      display: grid;
+      gap: 10px;
+    }
+    .toolbar-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .toolbar-chip {
+      padding: 7px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+      color: #dce7f5;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .toolbar-chip.accent {
+      border-color: rgba(255, 107, 61, 0.28);
+      background: rgba(255, 107, 61, 0.12);
+      color: #ffd8d0;
+    }
+    .toolbar-chip.warn {
+      border-color: rgba(255, 191, 99, 0.28);
+      background: rgba(255, 191, 99, 0.12);
+      color: #ffdca0;
+    }
+    .status-text {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--muted);
+      font-size: 12px;
+      border: 1px solid var(--line);
+    }
+    .status-text.ok {
+      color: #83e7bc;
+      border-color: rgba(56, 199, 139, 0.26);
+      background: rgba(56, 199, 139, 0.12);
+    }
+    .status-text.running {
+      color: #8fe6ff;
+      border-color: rgba(74, 184, 219, 0.28);
+      background: rgba(74, 184, 219, 0.12);
+    }
     .workspace {
       padding: 0 18px 18px;
       display: grid;
-      grid-template-columns: 0.92fr 1.08fr;
-      gap: 16px;
-      min-height: 860px;
+      grid-template-columns: minmax(360px, 0.88fr) minmax(500px, 1.12fr);
+      gap: 18px;
+      min-height: 780px;
     }
     .workspace-left, .workspace-right {
       display: grid;
-      gap: 16px;
+      gap: 18px;
       min-height: 0;
     }
     .workspace-left {
-      grid-template-rows: 360px 1fr;
+      grid-template-rows: minmax(360px, 1fr) 260px;
     }
     .workspace-right {
-      grid-template-rows: 390px 1fr;
+      grid-template-rows: 252px minmax(420px, 1fr);
     }
     .card {
       display: flex;
       flex-direction: column;
       border: 1px solid var(--line);
-      border-radius: 20px;
-      background: rgba(6, 12, 20, 0.72);
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(8, 14, 22, 0.84), rgba(7, 13, 20, 0.92));
       overflow: hidden;
       min-height: 0;
     }
+    .card-featured {
+      border-color: rgba(255, 107, 61, 0.2);
+      box-shadow: 0 0 0 1px rgba(255, 107, 61, 0.08), var(--shadow-soft);
+    }
     .card-head {
-      padding: 14px 16px;
+      padding: 16px 18px;
       border-bottom: 1px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+    }
+    .card-featured .card-head {
+      background: linear-gradient(180deg, rgba(255, 107, 61, 0.08), rgba(255, 255, 255, 0.02));
     }
     .card-head-split {
       display: flex;
@@ -363,33 +494,33 @@
     }
     .card-head h3 {
       margin: 0;
-      font-size: 15px;
+      font-size: 16px;
+      letter-spacing: 0.01em;
     }
     .card-head p {
       margin: 6px 0 0;
       color: var(--muted);
       font-size: 12px;
-      line-height: 1.5;
+      line-height: 1.6;
     }
     .card-body {
       padding: 14px;
       flex: 1;
-      height: auto;
       min-height: 0;
     }
     .scroll {
       width: 100%;
       height: 100%;
       overflow: auto;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      background: rgba(3, 8, 14, 0.76);
-      padding: 14px;
+      border: 1px solid rgba(118, 142, 170, 0.14);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(4, 10, 16, 0.96), rgba(7, 14, 24, 0.84));
+      padding: 16px;
     }
     .text-view {
       white-space: pre-wrap;
       word-break: break-word;
-      line-height: 1.72;
+      line-height: 1.74;
       font-size: 13px;
       font-family: var(--mono);
     }
@@ -402,23 +533,24 @@
       width: 100%;
       height: 100%;
       resize: none;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      background: rgba(3, 8, 14, 0.76);
+      border: 1px solid rgba(118, 142, 170, 0.14);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(4, 10, 16, 0.96), rgba(7, 14, 24, 0.84));
       color: var(--text);
-      padding: 14px;
-      line-height: 1.72;
+      padding: 16px;
+      line-height: 1.74;
       font-size: 13px;
       font-family: var(--mono);
     }
     .dataset {
-      padding: 12px 0;
-      border-bottom: 1px solid rgba(122, 148, 182, 0.16);
+      padding: 0 0 14px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid rgba(118, 142, 170, 0.14);
     }
-    .dataset:first-child { padding-top: 0; }
     .dataset:last-child {
-      border-bottom: 0;
+      margin-bottom: 0;
       padding-bottom: 0;
+      border-bottom: 0;
     }
     .dataset-head {
       display: flex;
@@ -426,34 +558,43 @@
       justify-content: space-between;
       gap: 8px;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
     .dataset-title {
       font-weight: 700;
-      color: #f4f7fb;
+      color: #f4f8fd;
+      letter-spacing: 0.01em;
     }
     .dataset-meta {
-      color: var(--muted);
       font-size: 12px;
+      color: var(--muted);
     }
+    .dataset-meta.ok { color: #85efbf; }
+    .dataset-meta.pending { color: #ffd590; }
     .dataset-body {
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(122, 148, 182, 0.12);
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.028);
+      border: 1px solid rgba(118, 142, 170, 0.12);
       white-space: pre-wrap;
       word-break: break-word;
       line-height: 1.72;
       font-size: 13px;
       font-family: var(--mono);
     }
-    .empty {
+    .empty,
+    .markdown-placeholder {
+      display: grid;
+      place-items: center;
+      min-height: 160px;
+      padding: 22px;
+      text-align: center;
       color: var(--muted);
-      line-height: 1.7;
+      line-height: 1.8;
     }
     .markdown-view {
       font-size: 15px;
-      line-height: 1.82;
+      line-height: 1.88;
       color: #dce7f5;
       font-family: var(--sans);
     }
@@ -473,12 +614,12 @@
       letter-spacing: 0.01em;
     }
     .markdown-view h1 {
-      font-size: 28px;
+      font-size: 30px;
     }
     .markdown-view h2 {
       font-size: 22px;
-      padding-left: 10px;
-      border-left: 3px solid rgba(242, 84, 61, 0.72);
+      padding-left: 12px;
+      border-left: 3px solid rgba(255, 107, 61, 0.72);
     }
     .markdown-view h3 {
       font-size: 18px;
@@ -489,7 +630,7 @@
       color: #93e3ff;
     }
     .markdown-view p {
-      margin: 0.75em 0;
+      margin: 0.8em 0;
       color: #d7e3ef;
     }
     .markdown-view strong {
@@ -500,25 +641,32 @@
       color: #9fdaf0;
       font-style: normal;
     }
+    .markdown-view a {
+      color: #8fe6ff;
+      text-decoration: none;
+    }
+    .markdown-view a:hover {
+      text-decoration: underline;
+    }
     .markdown-view ul,
     .markdown-view ol {
       margin: 0.8em 0;
-      padding-left: 1.45em;
+      padding-left: 1.5em;
     }
     .markdown-view li {
-      margin: 0.4em 0;
+      margin: 0.45em 0;
     }
     .markdown-view hr {
       border: 0;
-      border-top: 1px solid rgba(122, 148, 182, 0.22);
-      margin: 1.1em 0;
+      border-top: 1px solid rgba(118, 142, 170, 0.22);
+      margin: 1.2em 0;
     }
     .markdown-view blockquote {
       margin: 0.9em 0;
-      padding: 10px 14px;
-      border-left: 3px solid rgba(35, 160, 200, 0.62);
-      background: rgba(35, 160, 200, 0.08);
-      border-radius: 0 12px 12px 0;
+      padding: 12px 14px;
+      border-left: 3px solid rgba(74, 184, 219, 0.62);
+      background: rgba(74, 184, 219, 0.08);
+      border-radius: 0 14px 14px 0;
       color: #b9d7e6;
     }
     .markdown-view pre {
@@ -526,8 +674,8 @@
       padding: 14px;
       overflow: auto;
       border-radius: 14px;
-      border: 1px solid rgba(122, 148, 182, 0.15);
-      background: rgba(2, 8, 15, 0.92);
+      border: 1px solid rgba(118, 142, 170, 0.15);
+      background: rgba(2, 8, 15, 0.94);
       color: #d4e4ff;
       font-size: 13px;
       line-height: 1.68;
@@ -551,15 +699,15 @@
       border-collapse: collapse;
       margin: 1em 0;
       font-size: 13px;
-      border: 1px solid rgba(122, 148, 182, 0.18);
+      border: 1px solid rgba(118, 142, 170, 0.18);
       overflow: hidden;
       border-radius: 12px;
     }
     .markdown-view th,
     .markdown-view td {
       padding: 9px 10px;
-      border-bottom: 1px solid rgba(122, 148, 182, 0.14);
-      border-right: 1px solid rgba(122, 148, 182, 0.12);
+      border-bottom: 1px solid rgba(118, 142, 170, 0.14);
+      border-right: 1px solid rgba(118, 142, 170, 0.12);
       text-align: left;
       vertical-align: top;
     }
@@ -575,18 +723,14 @@
     .markdown-view td:last-child {
       border-right: 0;
     }
-    .markdown-placeholder {
-      color: var(--muted);
-      line-height: 1.8;
-    }
     .loading-mask {
       position: fixed;
       inset: 0;
       display: none;
       align-items: center;
       justify-content: center;
-      background: rgba(3, 8, 14, 0.72);
-      backdrop-filter: blur(6px);
+      background: rgba(3, 8, 14, 0.56);
+      backdrop-filter: blur(5px);
       z-index: 9999;
     }
     .loading-mask.show {
@@ -625,11 +769,32 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
-    @media (max-width: 1320px) {
+    @media (max-width: 1380px) {
       .shell { grid-template-columns: 1fr; }
       .sidebar { position: static; }
       .hero, .workspace { grid-template-columns: 1fr; }
       .workspace-left, .workspace-right { grid-template-rows: auto auto; }
+    }
+    @media (max-width: 1080px) {
+      .hero { grid-template-columns: 1fr; }
+      .workspace { min-height: auto; }
+      .workspace-right { grid-template-rows: 280px minmax(380px, 1fr); }
+    }
+    @media (max-width: 820px) {
+      .shell {
+        width: min(100%, calc(100vw - 24px));
+        margin: 12px auto 24px;
+      }
+      .toolbar { grid-template-columns: 1fr; }
+      .button-grid, .single-grid, .prompt-actions { grid-template-columns: 1fr; }
+      .hero-metrics { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .brand h1 { font-size: 28px; }
+      .hero-copy h2 { font-size: 24px; }
+      .hero-metrics { grid-template-columns: 1fr; }
+      .top-progress-strip { grid-template-columns: 1fr 1fr; }
+      .card-head-split { flex-direction: column; }
     }
   </style>
 </head>
@@ -637,21 +802,21 @@
   <div class="shell">
     <aside class="panel sidebar">
       <section class="brand">
-        <div class="eyebrow">Trading Desk</div>
-        <h1>短线复盘<br>交易台</h1>
-        <p>左侧负责日期、标签、抓取与 Kimi 解析，右侧只保留 AI 工作流需要的三类结果：标签数据、提示词和解析结论。</p>
+        <div class="eyebrow">A-Share Workflow</div>
+        <h1>短线复盘<br>工作台</h1>
+        <p>把抓取数据、整理提示词和输出 AI 结论收敛到一条连续工作流里，减少在原始文件、日志和结果之间来回切换。</p>
       </section>
 
       <section class="section">
         <h3>交易日</h3>
-        <p>默认加载最近已有数据日期，也支持直接切换输入。</p>
+        <p>先确定交易日，再决定这一轮需要抓取和分析哪些标签。</p>
         <label for="tradeDate">交易日期</label>
         <input id="tradeDate" />
       </section>
 
       <section class="section">
         <h3>页面标签</h3>
-        <p>这里只负责选中标签。抓取与解析按钮分离，进度只跟随当前选中标签显示。</p>
+        <p>标签既是抓取范围，也是 AI 解析的上下文边界。默认可以全选，再做局部收缩。</p>
         <div id="targetTags" class="tag-grid"></div>
         <div class="button-grid">
           <button class="btn-ghost" onclick="selectAllTargets(true)">全选标签</button>
@@ -661,7 +826,7 @@
 
       <section class="section">
         <h3>抓取操作</h3>
-        <p>支持抓取全部、抓取所选，或单独抓取某个标签。</p>
+        <p>推荐优先抓取所选标签；单项抓取保留给补数和快速校验场景。</p>
         <div class="button-grid">
           <button class="btn-primary" onclick="fetchTargets('all')">抓取全部页面</button>
           <button class="btn-secondary" onclick="fetchTargets('selected')">抓取所选标签</button>
@@ -671,7 +836,7 @@
 
       <section class="section">
         <h3>Kimi 解析</h3>
-        <p>密钥将保存到当前电脑的本机加密配置中，浏览器端不再明文持久化。</p>
+        <p>密钥只保存在当前电脑。默认模型已经够用，只有明确需要时再切换。</p>
         <label for="kimiKey">Kimi API Key</label>
         <input id="kimiKey" type="password" placeholder="可留空，优先读取环境变量 MOONSHOT_API_KEY" />
         <div id="kimiKeyHint" class="toolbar-sub" style="margin-top:8px;">当前未保存本机密钥</div>
@@ -688,17 +853,29 @@
       </section>
 
       <section class="section">
-        <h3>逐项进度</h3>
-        <p>根据当前标签选择动态展示抓取或解析状态。</p>
-        <div id="progressBoard" class="progress-board"></div>
+        <h3>快捷 AI 工作流</h3>
+        <p>一键切换标签、抓取对应数据、自动生成提示词，并直接发起对应阶段的 AI 解析。</p>
+        <div class="quick-grid">
+          <button class="btn-primary" onclick="runQuickFlow('open')">开盘盘前解析</button>
+          <button class="btn-secondary" onclick="runQuickFlow('intraday')">盘中预期解析</button>
+          <button class="btn-ghost" onclick="runQuickFlow('close')">盘后全量复盘</button>
+        </div>
       </section>
+
     </aside>
 
     <main class="main">
       <section class="panel hero">
         <div class="hero-copy">
-          <h2>统一汇总竞价、指数、盘中异动、涨停结构、量能、复盘与板块强度，并直接送入 AI 推演链</h2>
-          <p>板块轮动固定抓取前 20 天板块强度数据。工作区不再展示原始文件面板，只专注于标签数据、可编辑提示词和最终解析。</p>
+          <div class="eyebrow">Research Flow</div>
+          <h2>先把盘面材料收齐，再把注意力集中到 AI 结论。</h2>
+          <div class="hero-points">
+            <span class="hero-point">01 选择日期与标签</span>
+            <span class="hero-point">02 抓取盘面材料</span>
+            <span class="hero-point">03 编辑提示词并复问</span>
+            <span class="hero-point">04 阅读结构化结论</span>
+          </div>
+          <p>竞价、异动、涨停结构、量能、复盘与板块强度仍然都在，但主视图改成“结果优先”。日志保留给排障，结论区才是阅读中心。</p>
         </div>
         <div class="hero-metrics">
           <div class="metric">
@@ -707,19 +884,19 @@
             <div class="sub">当前分析上下文绑定的交易日</div>
           </div>
           <div class="metric">
-            <div class="label">已抓取标签</div>
+            <div class="label">已有数据</div>
             <div class="value" id="metricAvailable">0</div>
-            <div class="sub">当前日期下已有数据的标签数量</div>
+            <div class="sub">当前交易日已入库的标签数量</div>
           </div>
           <div class="metric">
             <div class="label">选中标签</div>
             <div class="value" id="metricTargets">0</div>
-            <div class="sub">抓取与解析的目标集合</div>
+            <div class="sub">本轮抓取和解析的目标集合</div>
           </div>
           <div class="metric">
             <div class="label">任务状态</div>
             <div class="value" id="metricStatus">待机</div>
-            <div class="sub">任务执行时会同步更新</div>
+            <div class="sub">执行过程中同步反映当前状态</div>
           </div>
         </div>
       </section>
@@ -727,7 +904,7 @@
       <section class="top-progress">
         <div class="top-progress-strip" id="topProgressBoard">
           <div class="top-progress-item">
-            <div class="top-progress-name">等待任务</div>
+            <div class="top-progress-name">尚未发起任务</div>
             <div class="pill pending">待执行</div>
           </div>
         </div>
@@ -739,10 +916,15 @@
             <strong id="currentDate">-</strong>
             <span id="statusText" class="status-text">等待操作</span>
           </div>
-          <div class="toolbar-sub">抓取完成后更新标签数据；解析完成后更新提示词与 AI 结论。提示词支持复制、编辑后重新询问。</div>
+          <div class="toolbar-meta">
+            <div class="toolbar-sub">抓取完成后自动刷新标签数据；解析完成后自动更新提示词与 AI 结论。日志只保留在左下角，作为排障信息而不是主舞台。</div>
+            <div id="selectionSummary" class="toolbar-chips">
+              <div class="toolbar-chip accent">默认全选标签</div>
+            </div>
+          </div>
         </div>
         <div>
-          <button class="btn-ghost" onclick="refreshState()">刷新状态</button>
+          <button class="btn-ghost" onclick="refreshState()">刷新页面状态</button>
         </div>
       </section>
 
@@ -750,8 +932,8 @@
         <div class="workspace-left">
           <section class="card">
             <div class="card-head">
-              <h3>AI 标签数据获取结果</h3>
-              <p>只显示当前抓取或当前分析对应的标签数据，不展示站点来源信息。</p>
+              <h3>标签数据</h3>
+              <p>只保留当前抓取或当前分析需要的标签内容，不展示来源噪音。</p>
             </div>
             <div class="card-body">
               <div id="targetData" class="scroll">
@@ -762,8 +944,8 @@
 
           <section class="card">
             <div class="card-head">
-              <h3>任务日志</h3>
-              <p>抓取与解析的过程日志。</p>
+              <h3>执行日志</h3>
+              <p>仅用于查看抓取和解析过程，不再和主结果抢视觉焦点。</p>
             </div>
             <div class="card-body">
               <div class="scroll text-view" id="jobLog">任务日志会显示在这里</div>
@@ -774,8 +956,8 @@
         <div class="workspace-right">
           <section class="card">
             <div class="card-head">
-              <h3>AI 提示词</h3>
-              <p>支持点击复制，也支持你直接修改后重新发起询问。</p>
+              <h3>AI 提示词工作区</h3>
+              <p>保留复制、恢复和二次追问能力，但把阅读重心让给最终结论。</p>
             </div>
             <div class="card-body">
               <textarea id="promptEditor" class="text-editor">尚未生成 AI 提示词。</textarea>
@@ -787,11 +969,11 @@
             </div>
           </section>
 
-          <section class="card">
+          <section class="card card-featured">
             <div class="card-head card-head-split">
               <div class="card-head-copy">
-                <h3>AI 解析结果</h3>
-                <p>展示 Kimi 的结构化复盘输出，并按 Markdown 预览方式显示。</p>
+                <h3>AI 解析结论</h3>
+                <p>按 Markdown 结构化渲染，直接突出标题、要点、表格和阶段结论。</p>
               </div>
               <div class="card-head-actions">
                 <button class="btn-ghost btn-mini" onclick="copyAnalysisSnapshot()">复制截图</button>
@@ -819,6 +1001,26 @@
   <script>
     const TARGETS = %TARGETS_JSON%;
     const DEFAULT_MODEL = "%DEFAULT_MODEL%";
+    const STORAGE_KEYS = {
+      selectedTargets: "astock.kanpan.selectedTargets.v1"
+    };
+    const QUICK_FLOWS = {
+      open: {
+        label: "开盘盘前解析",
+        targets: ["jingjia", "jjyd"],
+        preset: "open"
+      },
+      intraday: {
+        label: "盘中预期解析",
+        targets: ["jingjia", "jjyd", "jinji", "yidong"],
+        preset: "intraday"
+      },
+      close: {
+        label: "盘后全量复盘",
+        targets: Object.keys(TARGETS),
+        preset: "close"
+      }
+    };
     const STATUS_TEXT = {
       pending: "待执行",
       queued: "排队中",
@@ -840,12 +1042,18 @@
       currentDate: "",
       availableTargets: []
     };
-    let selectedTargets = new Set(Object.keys(TARGETS));
+    let settingsState = {
+      kimiModel: DEFAULT_MODEL,
+      hasKimiKey: false,
+      kimiKeyMask: ""
+    };
+    let selectedTargets = new Set(loadStoredTargets());
     let activeJobId = "";
     let jobTimer = null;
     let lastPrompt = "";
     let lastAnalysis = "";
     let lastAnalyzeTargets = [];
+    let lastPromptPreset = "default";
     let loadingVisible = false;
 
     function setStatus(text, ok = false, running = false) {
@@ -855,6 +1063,34 @@
       document.getElementById("metricStatus").textContent = running ? "运行中" : ok ? "完成" : text;
     }
 
+    function loadStoredTargets() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.selectedTargets);
+        if (!raw) return Object.keys(TARGETS);
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return Object.keys(TARGETS);
+        const filtered = parsed.filter((item) => Object.prototype.hasOwnProperty.call(TARGETS, item));
+        if (!parsed.length) return [];
+        return filtered.length ? filtered : Object.keys(TARGETS);
+      } catch {
+        return Object.keys(TARGETS);
+      }
+    }
+
+    function persistSelectedTargets() {
+      try {
+        localStorage.setItem(STORAGE_KEYS.selectedTargets, JSON.stringify(orderedTargetList(Array.from(selectedTargets))));
+      } catch {}
+    }
+
+    function applySelectedTargets(targets = []) {
+      selectedTargets = new Set(orderedTargetList(targets));
+      persistSelectedTargets();
+      renderTags();
+      renderProgress();
+      updateMetrics();
+    }
+
     function targetLabel(key) {
       return TARGETS[key] ? TARGETS[key].label : key;
     }
@@ -862,6 +1098,16 @@
     function orderedTargetList(targets = []) {
       const chosen = new Set(targets);
       return Object.keys(TARGETS).filter((key) => chosen.has(key));
+    }
+
+    function summarizeTargets(targets = [], maxCount = 4) {
+      const ordered = orderedTargetList(targets);
+      if (!ordered.length) return "未选择标签";
+      const labels = ordered.map(targetLabel);
+      if (labels.length <= maxCount) {
+        return labels.join(" / ");
+      }
+      return labels.slice(0, maxCount).join(" / ") + ` 等 ${labels.length} 项`;
     }
 
     function formatTargetLabels(targets = [], separator = " / ") {
@@ -911,6 +1157,36 @@
         .replace(/^Error:\s*/i, "")
         .trim();
       return text || "发生未知错误";
+    }
+
+    function buildFailureAnalysis(errorText) {
+      const message = normalizeErrorMessage(errorText);
+      const hints = message.includes("HTTP 401") || /Invalid Authentication/i.test(message)
+        ? [
+            "- 当前是鉴权失败，不是数据缺失，也不是模型名问题",
+            "- 请在左侧先清空当前 Key，再粘贴新的有效 `Kimi API Key`",
+            "- 点击“保存本机配置”后重新发起解析",
+            "- 如果你本机还设置了 `MOONSHOT_API_KEY`，也请确认它不是旧 Key"
+          ]
+        : message.includes("Kimi API Key")
+        ? [
+            "- 在左侧填写 `Kimi API Key` 后点击“保存本机配置”",
+            "- 或在启动服务前设置环境变量 `MOONSHOT_API_KEY`",
+            "- 保存后重新发起解析"
+          ]
+        : [
+            "- 先确认所选标签数据已抓取完成",
+            "- 再检查模型名和网络状态",
+            "- 如仍失败，查看左下角执行日志中的最后几行"
+          ];
+      return [
+        "# AI 解析失败",
+        "",
+        `> 原因：${message}`,
+        "",
+        "建议处理：",
+        ...hints
+      ].join("\n");
     }
 
     function splitTableRow(line) {
@@ -1377,6 +1653,34 @@
       return canvas;
     }
 
+    async function copyAnalysisSnapshot() {
+      if (!lastAnalysis.trim()) {
+        setStatus("当前没有可复制的解析结果");
+        return;
+      }
+      try {
+        const canvas = createAnalysisSnapshotCanvas(lastAnalysis);
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+        if (!blob) throw new Error("生成截图失败");
+
+        if (navigator.clipboard && window.ClipboardItem) {
+          await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+          setStatus("解析截图已复制", true);
+          return;
+        }
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${state.currentDate || "analysis"}-analysis.png`;
+        link.click();
+        setStatus("浏览器不支持直接复制，已触发下载", true);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } catch (err) {
+        setStatus(normalizeErrorMessage(err));
+      }
+    }
+
     function showLoading(text) {
       loadingVisible = true;
       document.getElementById("loadingText").textContent = text || "正在执行任务...";
@@ -1395,14 +1699,26 @@
 
     function selectedTargetList(mode) {
       if (mode === "all") return Object.keys(TARGETS);
-      return Array.from(selectedTargets);
+      return orderedTargetList(Array.from(selectedTargets));
     }
 
     function updateMetrics() {
+      const availableCount = Array.isArray(state.availableTargets) ? state.availableTargets.length : 0;
+      const selected = orderedTargetList(Array.from(selectedTargets));
       document.getElementById("metricDate").textContent = state.currentDate || "-";
-      document.getElementById("metricAvailable").textContent = String((state.availableTargets || []).length);
+      document.getElementById("metricAvailable").textContent = String(availableCount);
       document.getElementById("metricTargets").textContent = String(selectedTargets.size);
       document.getElementById("currentDate").textContent = state.currentDate || "-";
+      const summary = document.getElementById("selectionSummary");
+      if (summary) {
+        const chips = [];
+        chips.push(`<div class="toolbar-chip ${selected.length ? "" : "warn"}">${selected.length ? `已选 ${selected.length} 个标签` : "未选择标签"}</div>`);
+        if (selected.length) {
+          chips.push(`<div class="toolbar-chip accent">${escapeHtml(summarizeTargets(selected))}</div>`);
+        }
+        chips.push(`<div class="toolbar-chip">已有数据 ${availableCount} 项</div>`);
+        summary.innerHTML = chips.join("");
+      }
     }
 
     function renderTags() {
@@ -1418,6 +1734,7 @@
           } else {
             selectedTargets.add(key);
           }
+          persistSelectedTargets();
           renderTags();
           renderProgress();
           updateMetrics();
@@ -1439,34 +1756,17 @@
     }
 
     function renderProgress(statuses = null) {
-      const root = document.getElementById("progressBoard");
       const topRoot = document.getElementById("topProgressBoard");
-      root.innerHTML = "";
       topRoot.innerHTML = "";
       const keys = Object.keys(TARGETS).filter((key) => selectedTargets.has(key));
       if (!keys.length) {
-        root.innerHTML = '<div class="empty">当前未选择任何标签。</div>';
-        topRoot.innerHTML = '<div class="top-progress-item"><div class="top-progress-name">未选择标签</div><div class="pill pending">待执行</div></div>';
+        topRoot.innerHTML = '<div class="top-progress-item status-pending"><div class="top-progress-name">未选择标签</div><div class="pill pending">待执行</div></div>';
         return;
       }
       keys.forEach((key) => {
-        const item = document.createElement("div");
-        item.className = "progress-item";
-
-        const label = document.createElement("div");
-        label.textContent = TARGETS[key].label;
-
-        const pill = document.createElement("div");
         const raw = statuses && statuses[key] ? statuses[key] : "pending";
-        pill.className = "pill " + raw;
-        pill.textContent = STATUS_TEXT[raw] || raw;
-
-        item.appendChild(label);
-        item.appendChild(pill);
-        root.appendChild(item);
-
         const topItem = document.createElement("div");
-        topItem.className = "top-progress-item";
+        topItem.className = "top-progress-item status-" + raw;
         const topName = document.createElement("div");
         topName.className = "top-progress-name";
         topName.textContent = TARGETS[key].label;
@@ -1480,10 +1780,7 @@
     }
 
     function selectAllTargets(enabled) {
-      selectedTargets = enabled ? new Set(Object.keys(TARGETS)) : new Set();
-      renderTags();
-      renderProgress();
-      updateMetrics();
+      applySelectedTargets(enabled ? Object.keys(TARGETS) : []);
     }
 
     function renderTargetData(items) {
@@ -1493,15 +1790,17 @@
         return;
       }
       root.innerHTML = items.map((item) => {
-        const body = item.exists === "true"
-          ? escapeHtml(item.content || "该标签文件为空。")
-          : "当前标签尚未生成数据。";
-        const meta = item.exists === "true" ? "数据已入库" : "待抓取";
+        const exists = item.exists === "true";
+        const body = exists
+          ? "已抓取完成，可直接生成提示词并用于 AI 解析。"
+          : "当前标签尚未抓取，请先执行对应抓取任务。";
+        const meta = exists ? "已抓取" : "待抓取";
+        const metaClass = exists ? "dataset-meta ok" : "dataset-meta pending";
         return `
           <section class="dataset">
             <div class="dataset-head">
               <div class="dataset-title">${escapeHtml(item.label)}</div>
-              <div class="dataset-meta">${escapeHtml(meta)}</div>
+              <div class="${metaClass}">${escapeHtml(meta)}</div>
             </div>
             <div class="dataset-body">${body}</div>
           </section>
@@ -1515,17 +1814,58 @@
     }
 
     function setAnalysisContent(text) {
-      document.getElementById("analysisContent").textContent = text || "尚未生成 AI 解析结果。";
+      lastAnalysis = text || "";
+      document.getElementById("analysisContent").innerHTML = renderMarkdown(lastAnalysis);
+    }
+
+    function currentDisplayedKimiKey() {
+      return document.getElementById("kimiKey").value.trim();
+    }
+
+    function currentKimiKeyValue() {
+      const raw = currentDisplayedKimiKey();
+      if (!raw) return "";
+      if (settingsState.hasKimiKey && raw === settingsState.kimiKeyMask) {
+        return "";
+      }
+      return raw;
+    }
+
+    function buildSettingsPayload(preserveExistingBlank = false) {
+      const raw = currentDisplayedKimiKey();
+      const keepExistingKey = settingsState.hasKimiKey && (
+        raw === settingsState.kimiKeyMask || (preserveExistingBlank && !raw)
+      );
+      return {
+        kimi_key: keepExistingKey ? "" : raw,
+        kimi_model: document.getElementById("kimiModel").value.trim() || DEFAULT_MODEL,
+        keep_existing_key: keepExistingKey
+      };
     }
 
     function applySettings(settings = {}) {
-      document.getElementById("kimiModel").value = settings.kimiModel || DEFAULT_MODEL;
-      document.getElementById("kimiKeyHint").textContent = settings.hasKimiKey
-        ? "本机已保存密钥: " + (settings.kimiKeyMask || "")
+      const keyInput = document.getElementById("kimiKey");
+      const previousMask = settingsState.kimiKeyMask || "";
+      const currentValue = keyInput.value.trim();
+      settingsState = {
+        kimiModel: settings.kimiModel || DEFAULT_MODEL,
+        hasKimiKey: Boolean(settings.hasKimiKey),
+        kimiKeyMask: settings.kimiKeyMask || ""
+      };
+      document.getElementById("kimiModel").value = settingsState.kimiModel;
+      document.getElementById("kimiKeyHint").textContent = settingsState.hasKimiKey
+        ? "本机已保存密钥: " + settingsState.kimiKeyMask
         : "当前未保存本机密钥";
-      if (!document.getElementById("kimiKey").value.trim()) {
-        document.getElementById("kimiKey").placeholder = settings.hasKimiKey
-          ? "留空则继续使用已保存密钥"
+      if (settingsState.hasKimiKey) {
+        if (!currentValue || currentValue === previousMask) {
+          keyInput.value = settingsState.kimiKeyMask;
+        }
+      } else if (currentValue === previousMask) {
+        keyInput.value = "";
+      }
+      if (!keyInput.value.trim() || keyInput.value.trim() === settingsState.kimiKeyMask) {
+        keyInput.placeholder = settingsState.hasKimiKey
+          ? "已显示保存后的掩码；直接解析即可"
           : "可留空，优先读取环境变量 MOONSHOT_API_KEY";
       }
     }
@@ -1539,16 +1879,22 @@
 
     async function saveSettings() {
       try {
-        const data = await postJson("/api/settings", {
-          kimi_key: document.getElementById("kimiKey").value.trim(),
-          kimi_model: document.getElementById("kimiModel").value.trim() || DEFAULT_MODEL
-        });
+        const data = await postJson("/api/settings", buildSettingsPayload(false));
         applySettings(data);
-        document.getElementById("kimiKey").value = "";
         setStatus("本机配置已保存", true);
       } catch (err) {
         setStatus(normalizeErrorMessage(err));
       }
+    }
+
+    async function persistSettingsIfNeeded() {
+      const raw = currentDisplayedKimiKey();
+      const currentModel = document.getElementById("kimiModel").value.trim() || DEFAULT_MODEL;
+      const keyChanged = raw && (!settingsState.hasKimiKey || raw !== settingsState.kimiKeyMask);
+      const modelChanged = currentModel !== (settingsState.kimiModel || DEFAULT_MODEL);
+      if (!keyChanged && !modelChanged) return;
+      const data = await postJson("/api/settings", buildSettingsPayload(true));
+      applySettings(data);
     }
 
     function clearKeyInput() {
@@ -1579,12 +1925,27 @@
       return data;
     }
 
-    async function fetchTargets(mode, manualTargets = []) {
+    async function generatePromptForTargets(date, targets, options = {}) {
+      const data = await postJson("/api/prompt", {
+        date,
+        targets,
+        preset: options.preset || "default"
+      });
+      lastAnalyzeTargets = [...targets];
+      lastPromptPreset = data.preset || options.preset || "default";
+      setPromptContent(data.prompt || "");
+      if (options.updateTargetData !== false && data.target_data) {
+        renderTargetData(data.target_data);
+      }
+      return data;
+    }
+
+    async function fetchTargets(mode, manualTargets = [], options = {}) {
       const date = document.getElementById("tradeDate").value.trim();
       const targets = manualTargets.length ? manualTargets : selectedTargetList(mode);
       if (!targets.length) {
         setStatus("请先选择抓取目标");
-        return;
+        return null;
       }
       const targetText = formatTargetLabels(targets);
       showLoading("正在提交抓取请求...\n" + targetText);
@@ -1594,42 +1955,72 @@
       try {
         const data = await postJson("/api/fetch", { date, targets });
         updateLoading("抓取任务已提交，等待服务返回日志...\n" + targetText);
-        followJob(data.job_id, date);
+        const finalData = await followJob(data.job_id, date);
+        if (finalData && finalData.status === "completed" && options.generatePrompt !== false) {
+          try {
+            await generatePromptForTargets(date, targets, {
+              preset: options.promptPreset || "default",
+              updateTargetData: false
+            });
+            setStatus("抓取完成，提示词已生成", true);
+          } catch (err) {
+            setStatus("抓取完成，但提示词生成失败：" + normalizeErrorMessage(err));
+          }
+        }
+        if (options.autoAnalyze && finalData && finalData.status === "completed") {
+          return await analyzeTargets("selected", "", {
+            manualTargets: targets,
+            preset: options.analyzePreset || options.promptPreset || "default"
+          });
+        }
+        return finalData;
       } catch (err) {
         hideLoading();
         setStatus(normalizeErrorMessage(err));
+        return null;
       }
     }
 
-    async function analyzeTargets(mode, promptOverride = "") {
+    async function analyzeTargets(mode, promptOverride = "", options = {}) {
       const date = document.getElementById("tradeDate").value.trim();
-      let targets = selectedTargetList(mode);
-      if (mode === "all") {
+      let targets = options.manualTargets && options.manualTargets.length
+        ? orderedTargetList(options.manualTargets)
+        : selectedTargetList(mode);
+      if (mode === "all" && !(options.manualTargets && options.manualTargets.length)) {
         targets = Object.keys(TARGETS);
       }
       if (!targets.length) {
         setStatus("请先选择解析目标");
-        return;
+        return null;
       }
       lastAnalyzeTargets = [...targets];
+      lastPromptPreset = options.preset || "default";
       const targetText = formatTargetLabels(targets);
-      showLoading("正在提交 AI 解析请求...\n" + targetText);
-      setStatus("Kimi 解析中：" + formatTargetLabels(targets, "、"), false, true);
-      document.getElementById("jobLog").textContent = "任务已提交，等待日志...";
-      renderProgress(Object.fromEntries(targets.map((item) => [item, "queued"])));
       try {
+        await persistSettingsIfNeeded();
+        showLoading("正在提交 AI 解析请求...\n" + targetText);
+        setStatus("Kimi 解析中：" + formatTargetLabels(targets, "、"), false, true);
+        setAnalysisContent("## 正在解析\n\n> 任务已提交，等待 Kimi 返回结构化结果。");
+        document.getElementById("jobLog").textContent = "任务已提交，等待日志...";
+        renderProgress(Object.fromEntries(targets.map((item) => [item, "queued"])));
         const data = await postJson("/api/analyze", {
           date,
           targets,
-          api_key: document.getElementById("kimiKey").value.trim(),
+          api_key: currentKimiKeyValue(),
           model: document.getElementById("kimiModel").value.trim() || DEFAULT_MODEL,
-          prompt_override: promptOverride
+          prompt_override: promptOverride,
+          preset: options.preset || "default"
         });
         updateLoading("AI 解析任务已提交，正在等待阶段更新...\n" + targetText);
-        followJob(data.job_id, date);
+        return await followJob(data.job_id, date);
       } catch (err) {
         hideLoading();
-        setStatus(normalizeErrorMessage(err));
+        const message = normalizeErrorMessage(err);
+        setStatus(message);
+        setAnalysisContent(buildFailureAnalysis(message));
+        document.getElementById("jobLog").textContent = "任务未启动。\n" + message;
+        renderProgress();
+        return null;
       }
     }
 
@@ -1644,66 +2035,93 @@
         setStatus("请先选择解析目标");
         return;
       }
-      await analyzeTargets("selected", prompt);
+      await analyzeTargets("selected", prompt, {
+        manualTargets: targets,
+        preset: lastPromptPreset || "default"
+      });
+    }
+
+    async function runQuickFlow(flowKey) {
+      const flow = QUICK_FLOWS[flowKey];
+      if (!flow) {
+        setStatus("未识别的快捷工作流");
+        return;
+      }
+      applySelectedTargets(flow.targets);
+      setPromptContent(`## ${flow.label}\n\n> 正在执行快捷工作流：先抓取数据，再自动生成提示词并发起 AI 解析。`);
+      setAnalysisContent(`## ${flow.label}\n\n> 等待抓取任务启动。`);
+      await fetchTargets("selected", flow.targets, {
+        promptPreset: flow.preset,
+        autoAnalyze: true,
+        analyzePreset: flow.preset
+      });
     }
 
     async function followJob(jobId, date) {
       activeJobId = jobId;
       if (jobTimer) clearInterval(jobTimer);
 
-      const poll = async () => {
-        try {
-          const res = await fetch("/api/job?id=" + encodeURIComponent(jobId));
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || "任务查询失败");
+      return await new Promise((resolve, reject) => {
+        const poll = async () => {
+          try {
+            const res = await fetch("/api/job?id=" + encodeURIComponent(jobId));
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "任务查询失败");
 
-          document.getElementById("jobLog").textContent = (data.logs || []).join("\n");
-          renderProgress(data.target_statuses || {});
-          const phaseText = data.status === "running"
-            ? "任务执行中，正在等待最新阶段日志..."
-            : data.status === "completed"
-              ? "任务已完成，正在刷新页面结果..."
-              : "任务执行失败，请查看日志";
-          updateLoading([phaseText, buildLoadingDetail(data)].filter(Boolean).join("\n"));
-          setStatus(
-            buildStatusSummary(data) + " / " + formatJobStatus(data.status),
-            data.status === "completed",
-            data.status === "running"
-          );
+            document.getElementById("jobLog").textContent = (data.logs || []).join("\n");
+            renderProgress(data.target_statuses || {});
+            const phaseText = data.status === "running"
+              ? "任务执行中，正在等待最新阶段日志..."
+              : data.status === "completed"
+                ? "任务已完成，正在刷新页面结果..."
+                : "任务执行失败，请查看日志";
+            updateLoading([phaseText, buildLoadingDetail(data)].filter(Boolean).join("\n"));
+            setStatus(
+              buildStatusSummary(data) + " / " + formatJobStatus(data.status),
+              data.status === "completed",
+              data.status === "running"
+            );
 
-          if (data.status !== "running") {
+            if (data.status !== "running") {
+              clearInterval(jobTimer);
+              jobTimer = null;
+              activeJobId = "";
+              await refreshState(date);
+
+              if (data.result) {
+                if (data.result.target_data) {
+                  renderTargetData(data.result.target_data);
+                }
+                if (data.type === "analyze") {
+                  setPromptContent(data.result.prompt || "");
+                  setAnalysisContent(
+                    data.result.analysis || (data.status === "failed" ? buildFailureAnalysis(data.error || "任务失败") : "")
+                  );
+                }
+              }
+
+              if (data.status === "failed") {
+                setStatus(data.error || "任务失败");
+              }
+              hideLoading();
+              resolve(data);
+            }
+          } catch (err) {
             clearInterval(jobTimer);
             jobTimer = null;
             activeJobId = "";
-            await refreshState(date);
-
-            if (data.result) {
-              if (data.result.target_data) {
-                renderTargetData(data.result.target_data);
-              }
-              if (data.type === "analyze") {
-                setPromptContent(data.result.prompt || "");
-                setAnalysisContent(data.result.analysis || (data.status === "failed" ? "AI 解析失败，请查看任务日志后重试。" : ""));
-              }
-            }
-
-            if (data.status === "failed") {
-              setStatus(data.error || "任务失败");
-            }
             hideLoading();
+            setStatus(normalizeErrorMessage(err));
+            renderProgress();
+            reject(err);
           }
-        } catch (err) {
-          clearInterval(jobTimer);
-          jobTimer = null;
-          activeJobId = "";
-          hideLoading();
-          setStatus(normalizeErrorMessage(err));
-          renderProgress();
-        }
-      };
+        };
 
-      await poll();
-      jobTimer = setInterval(poll, 1000);
+        poll().catch(reject);
+        jobTimer = setInterval(() => {
+          poll().catch(reject);
+        }, 1000);
+      });
     }
 
     async function copyPrompt() {
