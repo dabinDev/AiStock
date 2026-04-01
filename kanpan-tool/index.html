@@ -1484,6 +1484,62 @@
       return segments;
     }
 
+    function padSnapshotNumber(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function snapshotTitleDateParts() {
+      const tradeDate = document.getElementById("tradeDate").value.trim() || state.currentDate || "";
+      const match = tradeDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (match) {
+        return {
+          year: match[1],
+          month: match[2],
+          day: match[3]
+        };
+      }
+      const now = new Date();
+      return {
+        year: String(now.getFullYear()),
+        month: padSnapshotNumber(now.getMonth() + 1),
+        day: padSnapshotNumber(now.getDate())
+      };
+    }
+
+    function buildAnalysisSnapshotTitle() {
+      const { month, day } = snapshotTitleDateParts();
+      const monthDay = `${month}-${day}`;
+      const preset = (lastPromptPreset || "default").trim().toLowerCase();
+
+      if (preset === "open") {
+        return {
+          title: `AI竞价解析 ${monthDay} 09:25`,
+          filename: `ai-jingjia-${monthDay}-09-25`
+        };
+      }
+
+      if (preset === "intraday") {
+        const now = new Date();
+        const liveTime = `${padSnapshotNumber(now.getHours())}:${padSnapshotNumber(now.getMinutes())}`;
+        return {
+          title: `AI盘中解析 ${monthDay} ${liveTime}`,
+          filename: `ai-intraday-${monthDay}-${liveTime.replace(":", "-")}`
+        };
+      }
+
+      if (preset === "close") {
+        return {
+          title: `全量复盘 ${monthDay} 15:00`,
+          filename: `full-review-${monthDay}-15-00`
+        };
+      }
+
+      return {
+        title: `AI复盘解析 ${monthDay}`,
+        filename: `ai-analysis-${monthDay}`
+      };
+    }
+
     function createAnalysisSnapshotCanvas(markdown) {
       const segments = snapshotSegments(markdown);
       const canvas = document.createElement("canvas");
@@ -1491,6 +1547,7 @@
       const width = 1280;
       const padding = 58;
       const contentWidth = width - padding * 2;
+      const snapshotTitle = buildAnalysisSnapshotTitle();
       const metaText = [
         state.currentDate ? `交易日 ${state.currentDate}` : "",
         lastAnalyzeTargets.length ? formatTargetLabels(lastAnalyzeTargets, " / ") : ""
@@ -1514,8 +1571,10 @@
 
         ctx.font = "700 42px Microsoft YaHei UI";
         if (draw) {
-          ctx.fillStyle = palette.title;
+          ctx.fillStyle = "rgba(0, 0, 0, 0)";
           ctx.fillText("AI 复盘解析", padding, y);
+          ctx.fillStyle = palette.title;
+          ctx.fillText(snapshotTitle.title, padding, y);
         }
         y += 56;
 
@@ -1659,6 +1718,7 @@
         return;
       }
       try {
+        const snapshotTitle = buildAnalysisSnapshotTitle();
         const canvas = createAnalysisSnapshotCanvas(lastAnalysis);
         const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
         if (!blob) throw new Error("生成截图失败");
@@ -1672,7 +1732,7 @@
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = `${state.currentDate || "analysis"}-analysis.png`;
+        link.download = `${snapshotTitle.filename}.png`;
         link.click();
         setStatus("浏览器不支持直接复制，已触发下载", true);
         setTimeout(() => URL.revokeObjectURL(url), 1000);
