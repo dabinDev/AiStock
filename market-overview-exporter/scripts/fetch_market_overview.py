@@ -29,6 +29,7 @@ DEFAULT_DASHBOARD_FILE = "dashboard.md"
 DEFAULT_AI_FILE = "ai-analysis.md"
 DASHBOARD_META_PREFIX = "<!-- MARKET_OVERVIEW_META "
 META_SUFFIX = " -->"
+BROWSER_LAUNCH_ARGS = ["--proxy-server=direct://", "--proxy-bypass-list=*"]
 
 JINGJIA_SCRIPT = ROOT / "duanxian-jingjia-exporter" / "scripts" / "fetch_jingjia.py"
 JJYD_SCRIPT = ROOT / "duanxian-workflow" / "scripts" / "fetch_jjyd.py"
@@ -312,10 +313,20 @@ def export_existing_targets(output_root: Path, target_date: str, targets: list[s
 
 
 def launch_browser(playwright):
+    def launch_channel(channel: str | None = None):
+        kwargs: dict[str, Any] = {
+            "headless": True,
+            "proxy": {"server": "direct://"},
+            "args": BROWSER_LAUNCH_ARGS,
+        }
+        if channel:
+            kwargs["channel"] = channel
+        return playwright.chromium.launch(**kwargs)
+
     attempts = [
-        ("msedge", lambda: playwright.chromium.launch(channel="msedge", headless=True, proxy={"server": "direct://"})),
-        ("chrome", lambda: playwright.chromium.launch(channel="chrome", headless=True, proxy={"server": "direct://"})),
-        ("chromium", lambda: playwright.chromium.launch(headless=True, proxy={"server": "direct://"})),
+        ("msedge", lambda: launch_channel("msedge")),
+        ("chrome", lambda: launch_channel("chrome")),
+        ("chromium", launch_channel),
     ]
     errors: list[str] = []
     for name, launcher in attempts:

@@ -31,6 +31,7 @@ POOL_META_PREFIX = "<!-- POOL_META "
 JINJI_META_PREFIX = "<!-- JINJI_META "
 META_SUFFIX = " -->"
 SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
+BROWSER_LAUNCH_ARGS = ["--proxy-server=direct://", "--proxy-bypass-list=*"]
 POOL_TAB_MAP = {
     "zt": "涨停",
     "lb": "连板",
@@ -264,10 +265,20 @@ def read_meta(path: Path, prefix: str) -> dict[str, Any] | None:
 
 
 def launch_browser(playwright):
+    def launch_channel(channel: str | None = None):
+        kwargs: dict[str, Any] = {
+            "headless": True,
+            "proxy": {"server": "direct://"},
+            "args": BROWSER_LAUNCH_ARGS,
+        }
+        if channel:
+            kwargs["channel"] = channel
+        return playwright.chromium.launch(**kwargs)
+
     attempts = [
-        ("msedge", lambda: playwright.chromium.launch(channel="msedge", headless=True)),
-        ("chrome", lambda: playwright.chromium.launch(channel="chrome", headless=True)),
-        ("chromium", lambda: playwright.chromium.launch(headless=True)),
+        ("msedge", lambda: launch_channel("msedge")),
+        ("chrome", lambda: launch_channel("chrome")),
+        ("chromium", launch_channel),
     ]
     errors: list[str] = []
 

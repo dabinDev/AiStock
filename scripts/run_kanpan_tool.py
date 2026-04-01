@@ -29,6 +29,14 @@ EMBEDDED_SCRIPTS = {
 }
 DEFAULT_PORT = 8765
 APP_STORAGE_NAME = "AstockKanpan"
+PROXY_ENV_KEYS = (
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "all_proxy",
+)
 
 
 def runtime_root() -> Path:
@@ -81,11 +89,27 @@ def write_runtime_log(message: str) -> None:
         pass
 
 
+def sanitize_proxy_env(env: dict[str, str]) -> dict[str, str]:
+    for key in PROXY_ENV_KEYS:
+        env.pop(key, None)
+    return env
+
+
 def runtime_env() -> dict[str, str]:
-    env = os.environ.copy()
+    env = sanitize_proxy_env(os.environ.copy())
     env["ASTOCK_APP_ROOT"] = str(app_root())
     env["ASTOCK_BUNDLE_ROOT"] = str(runtime_root())
     return env
+
+
+def apply_runtime_env() -> None:
+    for key in PROXY_ENV_KEYS:
+        os.environ.pop(key, None)
+    os.environ.update(runtime_env())
+
+
+def is_background_runtime() -> bool:
+    return bool(os.environ.get("ASTOCK_EMBEDDED_SCRIPT", "").strip()) or os.environ.get("ASTOCK_SERVER_MODE", "").strip() == "1"
 
 
 def dispatch_embedded_script() -> bool:
@@ -101,7 +125,7 @@ def dispatch_embedded_script() -> bool:
     if not runtime_script.exists():
         raise SystemExit(f"未找到内置脚本文件: {runtime_script}")
 
-    os.environ.update(runtime_env())
+    apply_runtime_env()
     script_dir = str(runtime_script.parent)
     if script_dir not in sys.path:
         sys.path.insert(0, script_dir)
@@ -115,7 +139,7 @@ def run_server_mode() -> int:
     if not server_path.exists():
         raise SystemExit(f"未找到看盘工具入口: {server_path}")
 
-    os.environ.update(runtime_env())
+    apply_runtime_env()
     server_dir = str(server_path.parent)
     if server_dir not in sys.path:
         sys.path.insert(0, server_dir)
@@ -324,7 +348,7 @@ def run_launcher_mode() -> int:
     except Exception as exc:
         terminate_process(process)
         messagebox.showerror("启动失败", f"本地服务启动失败。\n\n{exc}")
-        raise
+        return 1
     return open_launcher_window(port, process)
 
 
@@ -335,9 +359,17 @@ def main() -> int:
         if os.environ.get("ASTOCK_SERVER_MODE", "").strip() == "1":
             return run_server_mode()
         return run_launcher_mode()
-    except Exception:
-        write_runtime_log(traceback.format_exc())
-        raise
+    except Exception as exc:
+        formatted = traceback.format_exc()
+        write_runtime_log(formatted)
+        if is_background_runtime():
+            print(formatted, file=sys.stderr, flush=True)
+            return 1
+        try:
+            messagebox.showerror("运行失败", f"程序运行失败。\n\n{exc}")
+        except Exception:
+            pass
+        return 1
 
 
 if __name__ == "__main__":

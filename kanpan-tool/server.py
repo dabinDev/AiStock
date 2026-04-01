@@ -32,6 +32,14 @@ SETTINGS_FILE = CONFIG_ROOT / "terminal-settings.json"
 DEFAULT_PORT = 8765
 DEFAULT_MODEL = "kimi-k2.5"
 KIMI_BASE_URL = "https://api.moonshot.cn/v1/chat/completions"
+PROXY_ENV_KEYS = (
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "all_proxy",
+)
 
 ANALYSIS_FRAMEWORK = """
 分析框架要求：
@@ -122,6 +130,19 @@ class DATA_BLOB(ctypes.Structure):
 
 def now_text() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def sanitize_proxy_env(env: dict[str, str]) -> dict[str, str]:
+    for key in PROXY_ENV_KEYS:
+        env.pop(key, None)
+    return env
+
+
+def subprocess_env() -> dict[str, str]:
+    env = sanitize_proxy_env(os.environ.copy())
+    env["PYTHONUTF8"] = "1"
+    env["PYTHONIOENCODING"] = "utf-8"
+    return env
 
 
 def is_windows() -> bool:
@@ -692,16 +713,12 @@ def start_fetch_job(date_text: str, targets: list[str]) -> str:
     job_id = create_job("fetch", f"{date_text} 抓取 {format_target_labels(targets)}", {"date": date_text, "targets": targets})
 
     def worker() -> None:
-        env = os.environ.copy()
-        env["PYTHONUTF8"] = "1"
-        env["PYTHONIOENCODING"] = "utf-8"
+        env = subprocess_env()
         try:
             if len(targets) > 1:
                 def run_single_target(target: str) -> tuple[str, int]:
                     meta = TARGETS[target]
-                    local_env = os.environ.copy()
-                    local_env["PYTHONUTF8"] = "1"
-                    local_env["PYTHONIOENCODING"] = "utf-8"
+                    local_env = subprocess_env()
                     set_job_target_status(job_id, target, "running")
                     append_job_log(job_id, f"[{meta['label']}] 鍚姩鎶撳彇")
                     args = export_command(date_text, target)

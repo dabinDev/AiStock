@@ -28,6 +28,7 @@ DEFAULT_DAILY_FILE = "jjyd.md"
 DEFAULT_SUMMARY_FILE = "jjyd_summary.md"
 META_PREFIX = "<!-- JJYD_META "
 META_SUFFIX = " -->"
+BROWSER_LAUNCH_ARGS = ["--proxy-server=direct://", "--proxy-bypass-list=*"]
 
 
 @dataclass(frozen=True)
@@ -110,10 +111,20 @@ def read_meta(path: Path) -> dict[str, Any] | None:
 
 
 def launch_browser(playwright):
+    def launch_channel(channel: str | None = None):
+        kwargs: dict[str, Any] = {
+            "headless": True,
+            "proxy": {"server": "direct://"},
+            "args": BROWSER_LAUNCH_ARGS,
+        }
+        if channel:
+            kwargs["channel"] = channel
+        return playwright.chromium.launch(**kwargs)
+
     attempts = [
-        ("msedge", lambda: playwright.chromium.launch(channel="msedge", headless=True)),
-        ("chrome", lambda: playwright.chromium.launch(channel="chrome", headless=True)),
-        ("chromium", lambda: playwright.chromium.launch(headless=True)),
+        ("msedge", lambda: launch_channel("msedge")),
+        ("chrome", lambda: launch_channel("chrome")),
+        ("chromium", launch_channel),
     ]
     errors: list[str] = []
 
