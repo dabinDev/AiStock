@@ -9,6 +9,7 @@ on:
     paths:
       - "scripts/build_kanpan_bundle.py"
       - "scripts/build_kanpan_linux.py"
+      - "scripts/publish_kanpan_release.py"
       - "scripts/run_kanpan_tool.py"
       - "kanpan-tool/**"
       - "market-overview-exporter/**"
@@ -19,7 +20,7 @@ on:
       - ".github/workflows/build-kanpan-linux.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-linux:
@@ -55,3 +56,11 @@ jobs:
           path: dist/AstockKanpan-linux-x64.tar.gz
           if-no-files-found: error
           retention-days: 7
+
+      - name: Publish release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python scripts/publish_kanpan_release.py \
+            --asset dist/AstockKanpan-linux-x64.tar.gz \
+            --asset-name AstockKanpan-linux-x64.tar.gz
