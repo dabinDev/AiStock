@@ -12,6 +12,7 @@ import ctypes
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from ctypes import wintypes
 from datetime import datetime
+from functools import lru_cache
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -32,6 +33,12 @@ SETTINGS_FILE = CONFIG_ROOT / "terminal-settings.json"
 DEFAULT_PORT = 8765
 DEFAULT_MODEL = "kimi-k2.5"
 KIMI_BASE_URL = "https://api.moonshot.cn/v1/chat/completions"
+PROMPT_REQUIREMENTS_FILE = ROOT / "解析提示词要求.md"
+PROMPT_SYSTEM_FILES = {
+    "open": ROOT / "开盘盘前解析-system-prompt-完整版.md",
+    "intraday": ROOT / "盘中预期解析-system-prompt-完整版.md",
+    "close": ROOT / "盘后全量复盘-system-prompt-完整版.md",
+}
 PROXY_ENV_KEYS = (
     "HTTP_PROXY",
     "HTTPS_PROXY",
@@ -530,6 +537,165 @@ def resolve_prompt_preset(preset: str | None) -> str:
     return key if key in PROMPT_PRESETS else "default"
 
 
+@lru_cache(maxsize=8)
+def read_prompt_template(path: str) -> str:
+    prompt_path = Path(path)
+    if not prompt_path.exists():
+        return ""
+    return prompt_path.read_text(encoding="utf-8").strip()
+
+
+def prompt_requirements_text() -> str:
+    return read_prompt_template(str(PROMPT_REQUIREMENTS_FILE))
+
+
+def prompt_system_text(preset_key: str) -> str:
+    path = PROMPT_SYSTEM_FILES.get(preset_key)
+    if not path:
+        return ""
+    return read_prompt_template(str(path))
+
+
+def prompt_time_title(date_text: str, preset_key: str) -> str:
+    match = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})", date_text.strip())
+    if match:
+        month_day = f"{match.group(2)}-{match.group(3)}"
+    else:
+        month_day = date_text.strip()
+
+    if preset_key == "open":
+        return f"{month_day} 09:25"
+    if preset_key == "intraday":
+        return datetime.now().strftime(f"{month_day} %H:%M")
+    if preset_key == "close":
+        return f"{month_day} 15:00"
+    return month_day
+
+
+def prompt_field_alias(preset_key: str, target: str) -> str:
+    if preset_key == "close":
+        return {
+            "global": "zhishu",
+            "ztlive": "ztzhibo",
+            "pool": "ztguchi",
+            "amount": "chengjiao",
+            "fupan": "riqi_fupan",
+            "platerotat": "bankuaistrength",
+        }.get(target, target)
+    return target
+
+
+def prompt_allowed_aliases(preset_key: str, targets: list[str]) -> list[str]:
+    return [prompt_field_alias(preset_key, target) for target in targets]
+
+
+def prompt_requirements_summary(preset_key: str, title_time: str, targets: list[str]) -> list[str]:
+    if not prompt_requirements_text():
+        return []
+
+    summary = [
+        f"首行必须只输出时间标题：{title_time}",
+        "时间标题格式固定为 MM-DD HH:MM，不要加 #、不要加解释、不要加方括号。",
+        f"本次只允许使用这些数据字段：{', '.join(prompt_allowed_aliases(preset_key, targets))}",
+        "不要复述提示词规则，不要输出教学说明，不要输出占位符，不要重复同一结论区块。",
+        "必须先写事实，再写推演，再写预案；推演不能写成既成事实。",
+        "兔子、乌龟只允许定义为同题材或同分支内部角色；写作时必须带题材归属，不能把它们当成全市场总龙。",
+        "周期龙、情绪龙只允许用于影响整个短线梯队或全市场风险偏好的核心；若只是单题材领涨，只能写题材龙头、题材核心或情绪先锋。",
+        "周期龙强调破局、分离旧龙、带动梯队切换；情绪龙强调影响全市场风险偏好和同批高位反馈，二者不要混用。",
+        "如果证据不足，不要强行指定兔子、乌龟、周期龙、情绪龙，宁可写成候选、观察对象或题材核心。",
+    ]
+    if preset_key == "intraday":
+        summary.extend(
+            [
+                "盘中必须结合竞价强弱、晋级结构、异动/回封/炸板去判断板块轮动是在强化、回流、脉冲还是证伪，不能只因一只股上板就认定题材切换。",
+                "盘中若没有近20日板块强度数据，只能写盘中轮动迹象与当前资金选择，不能替代盘后对板块轮动的最终定性。",
+                "盘中周期节点必须落到当前可见证据：老高标是否掉队、1进2/2进3是否成批确认、异动是否向新方向集中；否则最多写试错节点或候选节点。",
+                "盘中结论只能写到当前时点，不得把午后和收盘写成已经发生。",
+            ]
+        )
+    elif preset_key == "open":
+        summary.extend(
+            [
+                "盘前兔子、乌龟只能给候选，不要在盘前直接确认周期龙或情绪龙。",
+                "盘前对板块轮动和周期节点只能给验证点与观察顺序，不得提前宣告新周期成立或大节点确认。",
+                "盘前只能做开盘预期和验证点，不得写成收盘定论。",
+            ]
+        )
+    elif preset_key == "close":
+        summary.extend(
+            [
+                "盘后必须把板块轮动写清楚：区分主线、次主线、轮动题材、退潮题材，并说明它们与近20日板块强度、涨停直播进攻顺序、异动播报强弱、晋级梯队结果是否相互印证。",
+                "近20日板块强度只能作为背景，不等于当天主线；当天主线必须同时看到核心带动、梯队完整、赚钱效应和时间顺序配合。",
+                "盘后必须明确周期节点是大节点还是小节点；题材内部补涨切换、卡位切换只能算小节点，只有老周期负反馈/见顶与新方向确认或指数共振同时出现，才可以上升到大节点或新周期。",
+                "若只是日内避险、消息脉冲或单题材发酵，不能直接写成新周期主线。",
+                "盘后需要完成完整复盘，但不要机械重复相同数据和结论。",
+            ]
+        )
+    return summary
+
+
+def build_external_prompt(
+    date_text: str,
+    targets: list[str],
+    *,
+    preset_key: str,
+    max_chars: int | None = 80000,
+    per_target_limit: int | None = 15000,
+) -> str:
+    system_text = prompt_system_text(preset_key)
+    if not system_text:
+        return ""
+
+    title_time = prompt_time_title(date_text, preset_key)
+    requirement_lines = prompt_requirements_summary(preset_key, title_time, targets)
+    parts = [
+        "【场景系统提示词】",
+        system_text,
+        "",
+    ]
+    if requirement_lines:
+        parts.extend(
+            [
+                "【补充执行约束】",
+                *[f"- {line}" for line in requirement_lines],
+                "",
+            ]
+        )
+
+    parts.extend(
+        [
+            "【本次数据输入】",
+            f"日期：{date_text}",
+            f"输出时间标题：{title_time}",
+        ]
+    )
+    if preset_key == "intraday":
+        parts.append(f"当前时间：{datetime.now().strftime('%H:%M')}")
+    parts.append("")
+
+    total_chars = 0
+    for target in targets:
+        meta = TARGETS[target]
+        content = sanitize_text(read_file(date_text, meta["file"]))
+        clipped = content
+        if max_chars is not None:
+            budget = max_chars - total_chars
+            if per_target_limit is not None:
+                budget = min(per_target_limit, budget)
+            if budget <= 0:
+                break
+            clipped = content[:budget]
+        elif per_target_limit is not None:
+            clipped = content[:per_target_limit]
+        total_chars += len(clipped)
+        alias = prompt_field_alias(preset_key, target)
+        parts.append(f"### 数据模块：[{alias}] {meta['label']}")
+        parts.append(clipped)
+        if len(clipped) < len(content):
+            parts.append(f"\n[已截断，原文本长度 {len(content)} 字符]\n")
+    return "\n".join(parts)
+
+
 def build_prompt(
     date_text: str,
     targets: list[str],
@@ -542,6 +708,17 @@ def build_prompt(
         return prompt_override.strip()
 
     preset_key = resolve_prompt_preset(preset)
+    if preset_key in PROMPT_SYSTEM_FILES:
+        external_prompt = build_external_prompt(
+            date_text,
+            targets,
+            preset_key=preset_key,
+            max_chars=max_chars,
+            per_target_limit=per_target_limit,
+        )
+        if external_prompt:
+            return external_prompt
+
     spec = PROMPT_PRESETS[preset_key]
     parts = [
         str(spec["intro"]).format(date_text=date_text),
@@ -628,9 +805,9 @@ def call_kimi(api_key: str, model: str, prompt: str) -> str:
                 "role": "system",
                 "content": (
                     "你是专业的 A 股短线看盘和复盘分析助手。"
-                    "你的任务是把多来源盘面数据整理成可执行的复盘框架。"
-                    "你必须强调市场周期、主线强度、龙头地位、补涨关系和风险预案。"
-                    "语言要求克制、结构化、基于证据，不模仿任何网络作者风格，也不提及任何来源作者。"
+                    "你必须优先遵循用户消息中的角色设定、术语口径、时间标题格式、输出结构和数据边界。"
+                    "你只能基于用户提供的数据做判断，不得脑补未提供模块，不得把推演写成事实。"
+                    "语言要求克制、结构化、基于证据，不模仿任何网络作者风格，也不提及来源作者。"
                 ),
             },
         ],

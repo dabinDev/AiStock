@@ -21,6 +21,12 @@ RUNTIME_DIRS = [
     ROOT / "duanxian-workflow",
     ROOT / "duanxian-yidong-pool",
 ]
+RUNTIME_FILES = [
+    ROOT / "解析提示词要求.md",
+    ROOT / "开盘盘前解析-system-prompt-完整版.md",
+    ROOT / "盘中预期解析-system-prompt-完整版.md",
+    ROOT / "盘后全量复盘-system-prompt-完整版.md",
+]
 BASE_HIDDEN_IMPORTS = [
     "uuid",
     "ctypes",
@@ -132,6 +138,9 @@ def build_bundle(
     for runtime_dir in RUNTIME_DIRS:
         if runtime_dir.exists():
             command.extend(["--add-data", add_data_arg(runtime_dir)])
+    for runtime_file in RUNTIME_FILES:
+        if runtime_file.exists():
+            command.extend(["--add-data", add_data_arg(runtime_file)])
     for hidden_import in hidden_imports:
         command.extend(["--hidden-import", hidden_import])
     for package_name in COLLECT_PACKAGES:
