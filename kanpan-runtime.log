@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "E:/Github/Astock/scripts/run_kanpan_tool.py", line 357, in main
+    if dispatch_embedded_script():
+       ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "<stdin>", line 11, in boom
+RuntimeError: embedded boom
