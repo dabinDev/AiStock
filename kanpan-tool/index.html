@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
@@ -51,11 +51,12 @@
     .shell {
       position: relative;
       z-index: 1;
-      width: min(1380px, calc(100vw - 24px));
+      width: min(1680px, calc(100vw - 24px));
       margin: 16px auto 24px;
       display: grid;
-      grid-template-columns: 300px minmax(0, 1fr);
-      gap: 14px;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
     }
     .panel {
       background: linear-gradient(180deg, var(--panel), var(--panel-2));
@@ -63,11 +64,20 @@
       border-radius: 24px;
       box-shadow: var(--shadow);
     }
+    .legacy-panel {
+      display: none !important;
+    }
     .sidebar {
       position: sticky;
       top: 16px;
       height: fit-content;
       padding: 16px;
+    }
+    .field-hint {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.65;
     }
     .brand {
       padding: 18px;
@@ -174,6 +184,12 @@
       gap: 8px;
       margin-top: 10px;
     }
+    .button-grid-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .button-grid-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
     .single-grid {
       max-height: 176px;
       overflow: auto;
@@ -235,9 +251,184 @@
     .pill.skipped { background: rgba(255, 191, 99, 0.16); color: #ffd590; }
     .main {
       display: grid;
-      grid-template-rows: auto auto auto 1fr;
-      gap: 14px;
+      grid-template-rows: auto 1fr;
+      gap: 16px;
       min-width: 0;
+    }
+    .action-dock {
+      position: sticky;
+      top: 16px;
+      z-index: 12;
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      background:
+        linear-gradient(135deg, rgba(255, 107, 61, 0.1), transparent 38%),
+        linear-gradient(180deg, rgba(10, 18, 28, 0.98), rgba(12, 20, 31, 0.96));
+      backdrop-filter: blur(18px);
+    }
+    .action-dock-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) 280px;
+      gap: 14px;
+      align-items: end;
+    }
+    .action-copy {
+      min-width: 0;
+    }
+    .action-copy h1 {
+      margin: 14px 0 0;
+      font-size: 28px;
+      line-height: 1.08;
+      letter-spacing: 0.01em;
+    }
+    .action-copy p {
+      margin: 10px 0 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 13px;
+      max-width: 720px;
+    }
+    .action-date {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+    .action-date-controls {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: end;
+    }
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .action-grid-secondary {
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 2fr);
+    }
+    .action-group {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015));
+      min-width: 0;
+    }
+    .action-group-primary {
+      background:
+        linear-gradient(145deg, rgba(255, 107, 61, 0.12), transparent 55%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015));
+    }
+    .action-group-wide {
+      min-width: 0;
+      grid-column: 1 / -1;
+    }
+    .action-group-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .action-group-head h3 {
+      margin: 0;
+      font-size: 14px;
+      letter-spacing: 0.01em;
+    }
+    .action-group-note {
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .action-group .quick-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .action-group-wide .single-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      max-height: 126px;
+    }
+    .quote-card {
+      padding: 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 107, 61, 0.22);
+      background:
+        linear-gradient(145deg, rgba(255, 107, 61, 0.14), transparent 44%),
+        linear-gradient(180deg, rgba(15, 23, 35, 0.98), rgba(8, 15, 24, 0.96));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+    .quote-card-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .quote-card-head h3 {
+      margin: 12px 0 0;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+    .quote-card-body {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(4, 10, 16, 0.42);
+      display: grid;
+      gap: 8px;
+    }
+    .quote-card-text {
+      font-size: 16px;
+      line-height: 1.8;
+      color: #f4f7fb;
+      min-height: 88px;
+    }
+    .quote-card-meta {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+    }
+    .side-overview {
+      margin-top: 14px;
+    }
+    .side-overview-head {
+      display: grid;
+      gap: 12px;
+    }
+    .side-status {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .side-status strong {
+      font-size: 24px;
+      letter-spacing: -0.02em;
+    }
+    .sidebar-metrics {
+      margin-top: 12px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .side-overview .hero-metrics {
+      margin-top: 14px;
+    }
+    .side-overview .metric .sub {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+    .sidebar-progress {
+      margin-top: 10px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      padding: 8px;
     }
     .hero {
       padding: 14px;
@@ -434,11 +625,11 @@
       background: rgba(74, 184, 219, 0.12);
     }
     .workspace {
-      padding: 0 18px 18px;
+      padding: 0;
       display: grid;
-      grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1.28fr);
+      grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.82fr);
       gap: 16px;
-      min-height: 720px;
+      min-height: 760px;
     }
     .workspace-left, .workspace-right {
       display: grid;
@@ -446,10 +637,10 @@
       min-height: 0;
     }
     .workspace-left {
-      grid-template-rows: minmax(240px, 1fr) 168px;
+      grid-template-rows: minmax(460px, 1fr) 240px;
     }
     .workspace-right {
-      grid-template-rows: 208px minmax(460px, 1fr);
+      grid-template-rows: minmax(250px, 0.95fr) minmax(220px, 0.8fr);
     }
     .card {
       display: flex;
@@ -774,29 +965,38 @@
     @media (max-width: 1380px) {
       .shell { grid-template-columns: 1fr; }
       .sidebar { position: static; }
-      .hero, .workspace { grid-template-columns: 1fr; }
+      .action-dock { position: static; }
+      .action-grid, .action-grid-secondary, .workspace { grid-template-columns: 1fr; }
       .workspace-left, .workspace-right { grid-template-rows: auto auto; }
     }
     @media (max-width: 1080px) {
-      .hero { grid-template-columns: 1fr; }
+      .action-dock-head { grid-template-columns: 1fr; }
       .workspace { min-height: auto; }
-      .workspace-right { grid-template-rows: 280px minmax(380px, 1fr); }
-      .hero-metrics { grid-template-columns: 1fr 1fr; }
+      .workspace-right { grid-template-rows: auto auto; }
+      .sidebar-metrics { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 820px) {
       .shell {
         width: min(100%, calc(100vw - 24px));
         margin: 12px auto 24px;
       }
-      .toolbar { grid-template-columns: 1fr; }
-      .button-grid, .single-grid, .prompt-actions { grid-template-columns: 1fr; }
-      .hero-metrics { grid-template-columns: 1fr 1fr; }
+      .action-date-controls,
+      .action-group .quick-grid,
+      .button-grid-3,
+      .button-grid-4,
+      .prompt-actions {
+        grid-template-columns: 1fr;
+      }
+      .button-grid, .single-grid { grid-template-columns: 1fr 1fr; }
+      .action-group-wide .single-grid { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 640px) {
-      .brand h1 { font-size: 28px; }
-      .hero-copy h2 { font-size: 22px; }
-      .hero-metrics { grid-template-columns: 1fr; }
-      .top-progress-strip { grid-template-columns: 1fr 1fr; }
+      .action-copy h1 { font-size: 24px; }
+      .sidebar-metrics { grid-template-columns: 1fr; }
+      .sidebar-progress,
+      .button-grid,
+      .single-grid,
+      .action-group-wide .single-grid { grid-template-columns: 1fr; }
       .card-head-split { flex-direction: column; }
     }
   </style>
@@ -804,6 +1004,65 @@
 <body>
   <div class="shell">
     <aside class="panel sidebar">
+      <section class="quote-card">
+        <div class="quote-card-head">
+          <div>
+            <div class="eyebrow" id="sidebarQuoteBadge">Shortline Note</div>
+            <h3 id="sidebarQuoteTitle">短线提醒</h3>
+          </div>
+          <button class="btn-ghost btn-mini" id="sidebarQuoteAction" onclick="rotateSidebarQuote()">换一句</button>
+        </div>
+        <div class="quote-card-body">
+          <div class="quote-card-text" id="sidebarQuoteText">只做看得懂的行情，先活下来。</div>
+          <div class="quote-card-meta" id="sidebarQuoteMeta">交易纪律 · 侧边栏随机提醒</div>
+        </div>
+      </section>
+
+      <section class="section side-overview">
+        <div class="side-overview-head">
+          <div class="eyebrow" id="sidebarOverviewBadge">Session Snapshot</div>
+          <div class="side-status">
+            <strong id="currentDate">-</strong>
+            <span id="statusText" class="status-text">等待操作</span>
+          </div>
+          <div id="selectionSummary" class="toolbar-chips">
+            <div class="toolbar-chip accent">默认全选标签</div>
+          </div>
+        </div>
+
+        <div class="hero-metrics sidebar-metrics">
+          <div class="metric">
+            <div class="label">DATE</div>
+            <div class="value" id="metricDateLegacy">-</div>
+            <div class="sub">当前抓取与解析绑定的交易日。</div>
+          </div>
+          <div class="metric">
+            <div class="label">DATA</div>
+            <div class="value" id="metricAvailableLegacy">0</div>
+            <div class="sub">当前交易日已经入库的标签数量。</div>
+          </div>
+          <div class="metric">
+            <div class="label">TARGETS</div>
+            <div class="value" id="metricTargetsLegacy">0</div>
+            <div class="sub">本轮准备抓取或解析的标签数量。</div>
+          </div>
+          <div class="metric">
+            <div class="label">STATUS</div>
+            <div class="value" id="metricStatus">待命</div>
+            <div class="sub">这里只保留关键状态，日志放到底部排障区。</div>
+          </div>
+        </div>
+
+        <div class="top-progress-strip sidebar-progress" id="sidebarProgressBoard">
+          <div class="top-progress-item status-pending">
+            <div class="top-progress-name">未选标签</div>
+            <div class="pill pending">待命</div>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <aside class="panel sidebar legacy-panel">
       <section class="brand">
         <div class="eyebrow">A-Share Workflow</div>
         <h1>短线复盘<br>工作台</h1>
@@ -814,13 +1073,13 @@
         <h3>交易日</h3>
         <p>先确定交易日，再决定这一轮需要抓取和分析哪些标签。</p>
         <label for="tradeDate">交易日期</label>
-        <input id="tradeDate" />
+        <input id="tradeDateLegacy" />
       </section>
 
       <section class="section">
         <h3>页面标签</h3>
         <p>标签既是抓取范围，也是 AI 解析的上下文边界。默认可以全选，再做局部收缩。</p>
-        <div id="targetTags" class="tag-grid"></div>
+        <div id="targetTagsLegacy" class="tag-grid"></div>
         <div class="button-grid">
           <button class="btn-ghost" onclick="selectAllTargets(true)">全选标签</button>
           <button class="btn-ghost" onclick="selectAllTargets(false)">清空标签</button>
@@ -834,17 +1093,17 @@
           <button class="btn-primary" onclick="fetchTargets('all')">抓取全部页面</button>
           <button class="btn-secondary" onclick="fetchTargets('selected')">抓取所选标签</button>
         </div>
-        <div id="singleButtons" class="single-grid"></div>
+        <div id="singleButtonsLegacy" class="single-grid"></div>
       </section>
 
       <section class="section">
         <h3>Kimi 解析</h3>
         <p>密钥只保存在当前电脑。默认模型已经够用，只有明确需要时再切换。</p>
-        <label for="kimiKey">Kimi API Key</label>
-        <input id="kimiKey" type="password" placeholder="可留空，优先读取环境变量 MOONSHOT_API_KEY" />
-        <div id="kimiKeyHint" class="toolbar-sub" style="margin-top:8px;">当前未保存本机密钥</div>
+        <label for="kimiKeyLegacy">Kimi API Key</label>
+        <input id="kimiKeyLegacy" type="password" placeholder="可留空，优先读取环境变量 MOONSHOT_API_KEY" />
+        <div id="kimiKeyHintLegacy" class="toolbar-sub" style="margin-top:8px;">当前未保存本机密钥</div>
         <label for="kimiModel">Kimi 模型</label>
-        <input id="kimiModel" value="%DEFAULT_MODEL%" />
+        <input id="kimiModelLegacy" value="%DEFAULT_MODEL%" />
         <div class="button-grid">
           <button class="btn-ghost" onclick="saveSettings()">保存本机配置</button>
           <button class="btn-ghost" onclick="clearKeyInput()">清空当前输入</button>
@@ -868,7 +1127,89 @@
     </aside>
 
     <main class="main">
-      <section class="panel hero">
+      <section class="panel action-dock">
+        <div class="action-dock-head">
+          <div class="action-copy">
+            <div class="eyebrow" id="actionDockBadge">Research Flow</div>
+            <h1 id="actionDockTitle">把高频操作全部收口到顶部。</h1>
+            <p id="actionDockDesc">日期、标签、抓取、解析、快捷流都放在首屏，下面只保留数据、提示词、AI 结论和日志。</p>
+          </div>
+          <div class="action-date">
+            <label for="tradeDate" id="tradeDateLabel">交易日期</label>
+            <div class="action-date-controls">
+              <input id="tradeDate" />
+              <button class="btn-ghost" id="refreshStateButton" onclick="refreshState()">刷新状态</button>
+            </div>
+            <div class="field-hint" id="tradeDateHint">切换日期后，顶部操作全部作用于当前交易日。</div>
+          </div>
+        </div>
+
+        <div class="action-grid">
+          <section class="action-group action-group-primary">
+            <div class="action-group-head">
+              <h3 id="groupQuickTitle">快捷工作流</h3>
+              <span class="action-group-note" id="groupQuickNote">高频</span>
+            </div>
+            <div class="quick-grid">
+              <button class="btn-primary" id="quickOpenButton" onclick="runQuickFlow('open')">盘前解析</button>
+              <button class="btn-secondary" id="quickIntradayButton" onclick="runQuickFlow('intraday')">盘中解析</button>
+              <button class="btn-ghost" id="quickCloseButton" onclick="runQuickFlow('close')">盘后复盘</button>
+            </div>
+          </section>
+
+          <section class="action-group">
+            <div class="action-group-head">
+              <h3 id="groupActionsTitle">高频操作</h3>
+              <span class="action-group-note" id="groupActionsNote">先抓后解</span>
+            </div>
+            <div class="button-grid">
+              <button class="btn-primary" id="fetchSelectedButton" onclick="fetchTargets('selected')">抓取所选</button>
+              <button class="btn-ghost" id="fetchAllButton" onclick="fetchTargets('all')">抓取全部</button>
+              <button class="btn-secondary" id="analyzeSelectedButton" onclick="analyzeTargets('selected')">解析所选</button>
+              <button class="btn-ghost" id="analyzeAllButton" onclick="analyzeTargets('all')">全量解析</button>
+            </div>
+          </section>
+
+          <section class="action-group">
+            <div class="action-group-head">
+              <h3 id="groupTargetsTitle">标签选择</h3>
+              <span class="action-group-note" id="groupTargetsNote">按需收缩</span>
+            </div>
+            <div id="targetTags" class="tag-grid"></div>
+            <div class="button-grid">
+              <button class="btn-ghost" id="selectAllButton" onclick="selectAllTargets(true)">全选标签</button>
+              <button class="btn-ghost" id="clearTargetsButton" onclick="selectAllTargets(false)">清空标签</button>
+            </div>
+          </section>
+
+          <section class="action-group">
+            <div class="action-group-head">
+              <h3 id="groupSettingsTitle">Kimi 配置</h3>
+              <span class="action-group-note" id="groupSettingsNote">本机保存</span>
+            </div>
+            <label for="kimiKey" id="kimiKeyLabel">Kimi API Key</label>
+            <input id="kimiKey" type="password" placeholder="可留空，优先读取环境变量 MOONSHOT_API_KEY" />
+            <div id="kimiKeyHint" class="field-hint">当前未保存本机密钥</div>
+            <label for="kimiModel" id="kimiModelLabel">Kimi 模型</label>
+            <input id="kimiModel" value="%DEFAULT_MODEL%" />
+            <div class="button-grid">
+              <button class="btn-ghost" id="saveSettingsButton" onclick="saveSettings()">保存配置</button>
+              <button class="btn-ghost" id="clearKeyButton" onclick="clearKeyInput()">清空输入</button>
+            </div>
+          </section>
+
+          <section class="action-group action-group-wide">
+            <div class="action-group-head">
+              <h3 id="groupSinglesTitle">单模块补抓</h3>
+              <span class="action-group-note" id="groupSinglesNote">低频</span>
+            </div>
+            <div class="field-hint" id="singleButtonsHint">补抓单页、快速校验、查缺补漏时使用。</div>
+            <div id="singleButtons" class="single-grid"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="panel hero legacy-panel">
         <div class="hero-copy">
           <div class="eyebrow">Research Flow</div>
           <h2>先把盘面材料收齐，再把注意力集中到 AI 结论。</h2>
@@ -898,13 +1239,13 @@
           </div>
           <div class="metric">
             <div class="label">任务状态</div>
-            <div class="value" id="metricStatus">待机</div>
+            <div class="value" id="metricStatusLegacy">待机</div>
             <div class="sub">执行过程中同步反映当前状态</div>
           </div>
         </div>
       </section>
 
-      <section class="top-progress">
+      <section class="top-progress legacy-panel">
         <div class="top-progress-strip" id="topProgressBoard">
           <div class="top-progress-item">
             <div class="top-progress-name">尚未发起任务</div>
@@ -913,15 +1254,15 @@
         </div>
       </section>
 
-      <section class="toolbar">
+      <section class="toolbar legacy-panel">
         <div class="toolbar-box">
           <div class="toolbar-title">
-            <strong id="currentDate">-</strong>
-            <span id="statusText" class="status-text">等待操作</span>
+            <strong id="currentDateLegacy">-</strong>
+            <span id="statusTextLegacy" class="status-text">等待操作</span>
           </div>
           <div class="toolbar-meta">
             <div class="toolbar-sub">抓取完成后自动刷新标签数据；解析完成后自动更新提示词与 AI 结论。日志只保留在左下角，作为排障信息而不是主舞台。</div>
-            <div id="selectionSummary" class="toolbar-chips">
+            <div id="selectionSummaryLegacy" class="toolbar-chips">
               <div class="toolbar-chip accent">默认全选标签</div>
             </div>
           </div>
@@ -1051,6 +1392,28 @@
       completed: "已完成",
       failed: "失败"
     };
+    const SHORTLINE_QUOTES = [
+      { text: "只有子弹在手，你才有主动权；开仓后盈亏就交给市场。", theme: "仓位", source: "2023-06-10《人性的弱点》" },
+      { text: "只盯持仓、不看整体情绪，是短线最常见的误区。", theme: "情绪", source: "2023-06-10《人性的弱点》" },
+      { text: "缩量行情里，后排套利最容易挡刀。", theme: "缩量", source: "2023-08-22 盘前计划" },
+      { text: "板块没有持续性时，只参与龙头，不碰后排。", theme: "龙头", source: "2023-08-22 盘前计划" },
+      { text: "龙头分歧低吸的前提，是板块还有持续性。", theme: "分歧", source: "2023-08-22 盘前总结" },
+      { text: "开盘前 15 分钟先看量能，主线延续一定要放量。", theme: "量能", source: "2023-08-22 复盘" },
+      { text: "预期是预期，行情是行情，别把预期打满。", theme: "预期", source: "2023-08-29 午评" },
+      { text: "静下来阅读市场、理解市场、跟随市场。", theme: "跟随", source: "2023-08-29 午评" },
+      { text: "好的买不到，买到的常常是坑。", theme: "交易", source: "2024-10-20 策略" },
+      { text: "量能不够，轮动再热也很难走出主线。", theme: "主线", source: "2024-10-22 策略" },
+      { text: "轻指数，重个股，但前提是情绪没有失控。", theme: "节奏", source: "2024-10-28 策略" },
+      { text: "弱转强要看承接，不是只看高开。", theme: "承接", source: "2024-10-29 复盘" },
+      { text: "流水不争先，争的是滔滔不绝。", theme: "耐心", source: "2026-03-09 思路前瞻" },
+      { text: "大环境差就主动收缩仓位，轻仓试错等环境转好。", theme: "仓控", source: "2026-03-22 思路前瞻" },
+      { text: "本金归零四招：冰点割肉、主升空仓、分歧接杂毛、退潮猛干。", theme: "警示", source: "2026-03-25 / 2026-04-01" },
+      { text: "高开多数是坑，尤其是机构趋势高开。", theme: "高开", source: "2026-04-01《祖训难违》" },
+      { text: "不接一致，不接后手连板，只吃先手轮动的一口。", theme: "一致", source: "2026-04-01 盘后前瞻" },
+      { text: "药主升往往意味着避险，不等于适合接力强更强。", theme: "周期", source: "2026-04-01 盘后前瞻" },
+      { text: "竞价不得不看，它决定很多超预期和不及预期的边界。", theme: "竞价", source: "2026-03-29 复盘" },
+      { text: "要信早信，不信一天也别信，最怕半信半疑去接力。", theme: "执行", source: "2026-03-20-03-31 多篇复盘" }
+    ];
 
     let state = {
       dates: [],
@@ -1070,6 +1433,7 @@
     let lastAnalyzeTargets = [];
     let lastPromptPreset = "default";
     let loadingVisible = false;
+    let currentQuoteIndex = -1;
 
     function setStatus(text, ok = false, running = false) {
       const el = document.getElementById("statusText");
@@ -1088,60 +1452,84 @@
       if (node) node.innerHTML = html;
     }
 
+    function rotateSidebarQuote(forceIndex = null) {
+      if (!SHORTLINE_QUOTES.length) return;
+      let nextIndex = Number.isInteger(forceIndex) ? forceIndex : Math.floor(Math.random() * SHORTLINE_QUOTES.length);
+      if (SHORTLINE_QUOTES.length > 1 && nextIndex === currentQuoteIndex) {
+        nextIndex = (nextIndex + 1 + Math.floor(Math.random() * (SHORTLINE_QUOTES.length - 1))) % SHORTLINE_QUOTES.length;
+      }
+      currentQuoteIndex = nextIndex;
+      const current = SHORTLINE_QUOTES[nextIndex];
+      setNodeText("#sidebarQuoteText", current.text);
+      setNodeText("#sidebarQuoteMeta", `${current.theme} | ${current.source}`);
+    }
+
     function applyStaticCopy() {
       setNodeText("title", "A股看盘工作台");
-      setNodeHtml(".brand h1", "看盘<br>工作台");
-      setNodeText(".brand p", "抓取、提示词、解析三步合一，只保留真正要看的信息。");
 
-      const sidebarTitles = document.querySelectorAll(".sidebar .section h3");
-      if (sidebarTitles[0]) sidebarTitles[0].textContent = "日期";
-      if (sidebarTitles[1]) sidebarTitles[1].textContent = "标签";
-      if (sidebarTitles[2]) sidebarTitles[2].textContent = "抓取";
-      if (sidebarTitles[3]) sidebarTitles[3].textContent = "Kimi";
-      if (sidebarTitles[4]) sidebarTitles[4].textContent = "快捷解析";
+      setNodeText("#sidebarQuoteBadge", "短线提醒");
+      setNodeText("#sidebarQuoteTitle", "侧边栏随机提示");
+      setNodeText("#sidebarQuoteAction", "换一句");
+      setNodeText("#sidebarOverviewBadge", "侧边信息");
 
-      setNodeText("label[for='tradeDate']", "交易日");
-      setNodeText("button[onclick=\"selectAllTargets(true)\"]", "全选");
-      setNodeText("button[onclick=\"selectAllTargets(false)\"]", "清空");
-      setNodeText("button[onclick=\"fetchTargets('all')\"]", "抓全部");
-      setNodeText("button[onclick=\"fetchTargets('selected')\"]", "抓所选");
-      setNodeText("button[onclick=\"saveSettings()\"]", "保存配置");
-      setNodeText("button[onclick=\"clearKeyInput()\"]", "清空输入");
-      setNodeText("button[onclick=\"analyzeTargets('all')\"]", "全量解析");
-      setNodeText("button[onclick=\"analyzeTargets('selected')\"]", "解析所选");
-      setNodeText("button[onclick=\"runQuickFlow('open')\"]", "盘前");
-      setNodeText("button[onclick=\"runQuickFlow('intraday')\"]", "盘中");
-      setNodeText("button[onclick=\"runQuickFlow('close')\"]", "盘后复盘");
+      setNodeText("#actionDockBadge", "顶部操作台");
+      setNodeText("#actionDockTitle", "把高频操作全部收口到顶部。");
+      setNodeText("#actionDockDesc", "根据使用频次重排按钮：先切日期，再选标签，然后直接抓取或发起快捷解析，减少来回滚动。");
+      setNodeText("#tradeDateLabel", "交易日期");
+      setNodeText("#tradeDateHint", "切换日期后，顶部的抓取、解析和快捷流都作用于当前交易日。");
+      setNodeText("#refreshStateButton", "刷新状态");
 
-      setNodeText(".hero .eyebrow", "Focus View");
-      setNodeText(".hero-copy h2", "只留抓取、提示词和 AI 结论");
-      setNodeText(".hero-copy p", "顶部只保留当前日期、状态和选择范围。");
+      setNodeText("#groupQuickTitle", "快捷工作流");
+      setNodeText("#groupQuickNote", "最高频");
+      setNodeText("#quickOpenButton", "盘前解析");
+      setNodeText("#quickIntradayButton", "盘中解析");
+      setNodeText("#quickCloseButton", "盘后复盘");
 
-      const metricLabels = document.querySelectorAll(".metric .label");
+      setNodeText("#groupActionsTitle", "高频操作");
+      setNodeText("#groupActionsNote", "先抓后解");
+      setNodeText("#fetchSelectedButton", "抓取所选");
+      setNodeText("#fetchAllButton", "抓取全部");
+      setNodeText("#analyzeSelectedButton", "解析所选");
+      setNodeText("#analyzeAllButton", "全量解析");
+
+      setNodeText("#groupTargetsTitle", "标签选择");
+      setNodeText("#groupTargetsNote", "按需收缩");
+      setNodeText("#selectAllButton", "全选标签");
+      setNodeText("#clearTargetsButton", "清空标签");
+
+      setNodeText("#groupSettingsTitle", "Kimi 配置");
+      setNodeText("#groupSettingsNote", "本机保存");
+      setNodeText("#kimiKeyLabel", "Kimi API Key");
+      setNodeText("#kimiModelLabel", "Kimi 模型");
+      setNodeText("#saveSettingsButton", "保存配置");
+      setNodeText("#clearKeyButton", "清空输入");
+
+      setNodeText("#groupSinglesTitle", "单模块补抓");
+      setNodeText("#groupSinglesNote", "低频");
+      setNodeText("#singleButtonsHint", "补抓单页、快速校验、查缺补漏时使用。");
+
+      const metricLabels = document.querySelectorAll(".side-overview .metric .label");
       if (metricLabels[0]) metricLabels[0].textContent = "日期";
       if (metricLabels[1]) metricLabels[1].textContent = "已抓";
       if (metricLabels[2]) metricLabels[2].textContent = "已选";
       if (metricLabels[3]) metricLabels[3].textContent = "状态";
 
-      setNodeText(".toolbar-sub", "顶部只保留关键状态，日志留给排障。");
-      setNodeText("button[onclick=\"refreshState()\"]", "刷新");
-
-      const cardTitles = document.querySelectorAll(".card-head h3");
-      if (cardTitles[0]) cardTitles[0].textContent = "抓取摘要";
+      const cardTitles = document.querySelectorAll(".workspace .card-head h3");
+      if (cardTitles[0]) cardTitles[0].textContent = "标签数据";
       if (cardTitles[1]) cardTitles[1].textContent = "执行日志";
-      if (cardTitles[2]) cardTitles[2].textContent = "提示词";
-      if (cardTitles[3]) cardTitles[3].textContent = "AI 结论";
+      if (cardTitles[2]) cardTitles[2].textContent = "AI 提示词工作区";
+      if (cardTitles[3]) cardTitles[3].textContent = "AI 结构化结论";
 
-      const cardDescs = document.querySelectorAll(".card-head p");
-      if (cardDescs[0]) cardDescs[0].textContent = "这里只显示每个标签是否就绪，不展示原始噪音。";
-      if (cardDescs[1]) cardDescs[1].textContent = "只用于排障，弱化展示。";
-      if (cardDescs[2]) cardDescs[2].textContent = "抓取完成后自动生成，可手改后重跑。";
-      if (cardDescs[3]) cardDescs[3].textContent = "把重点留给结构化结论和表格。";
+      const cardDescs = document.querySelectorAll(".workspace .card-head p");
+      if (cardDescs[0]) cardDescs[0].textContent = "这里只展示当前抓取或当前分析需要的标签数据，不再把原始噪音堆满首屏。";
+      if (cardDescs[1]) cardDescs[1].textContent = "日志仅用于排障，主界面阅读重点是数据与结论。";
+      if (cardDescs[2]) cardDescs[2].textContent = "抓取完成后会自动生成提示词，你仍然可以手改后重新发起提问。";
+      if (cardDescs[3]) cardDescs[3].textContent = "把标题、要点、表格和阶段判断集中到这里，方便复盘和盘中查看。";
 
-      setNodeText("button[onclick=\"copyPrompt()\"]", "复制全文");
-      setNodeText("button[onclick=\"resetPrompt()\"]", "恢复");
-      setNodeText("button[onclick=\"reanalyzeWithEditedPrompt()\"]", "重跑");
-      setNodeText("button[onclick=\"copyAnalysisSnapshot()\"]", "复制截图");
+      setNodeText('button[onclick="copyPrompt()"]', "复制全文");
+      setNodeText('button[onclick="resetPrompt()"]', "恢复原提示词");
+      setNodeText('button[onclick="reanalyzeWithEditedPrompt()"]', "修改后重跑");
+      setNodeText('button[onclick="copyAnalysisSnapshot()"]', "复制截图");
     }
 
     function loadStoredTargets() {
@@ -1263,18 +1651,18 @@
     function buildFailureAnalysis(errorText) {
       const message = normalizeErrorMessage(errorText);
       const hints = message.includes("HTTP 401") || /Invalid Authentication/i.test(message)
-        ? [
-            "- 当前是鉴权失败，不是数据缺失，也不是模型名问题",
-            "- 请在左侧先清空当前 Key，再粘贴新的有效 `Kimi API Key`",
-            "- 点击“保存本机配置”后重新发起解析",
-            "- 如果你本机还设置了 `MOONSHOT_API_KEY`，也请确认它不是旧 Key"
-          ]
-        : message.includes("Kimi API Key")
-        ? [
-            "- 在左侧填写 `Kimi API Key` 后点击“保存本机配置”",
-            "- 或在启动服务前设置环境变量 `MOONSHOT_API_KEY`",
-            "- 保存后重新发起解析"
-          ]
+          ? [
+              "- 当前是鉴权失败，不是数据缺失，也不是模型名问题",
+              "- 请在顶部操作区先清空当前 Key，再粘贴新的有效 `Kimi API Key`",
+              "- 点击“保存本机配置”后重新发起解析",
+              "- 如果你本机还设置了 `MOONSHOT_API_KEY`，也请确认它不是旧 Key"
+            ]
+          : message.includes("Kimi API Key")
+          ? [
+              "- 在顶部操作区填写 `Kimi API Key` 后点击“保存本机配置”",
+              "- 或在启动服务前设置环境变量 `MOONSHOT_API_KEY`",
+              "- 保存后重新发起解析"
+            ]
         : [
             "- 先确认所选标签数据已抓取完成",
             "- 再检查模型名和网络状态",
@@ -1923,27 +2311,33 @@
     }
 
     function renderProgress(statuses = null) {
-      const topRoot = document.getElementById("topProgressBoard");
-      topRoot.innerHTML = "";
+      const roots = ["sidebarProgressBoard", "topProgressBoard"]
+        .map((id) => document.getElementById(id))
+        .filter(Boolean);
+      if (!roots.length) return;
+      roots.forEach((root) => { root.innerHTML = ""; });
       const keys = Object.keys(TARGETS).filter((key) => selectedTargets.has(key));
       if (!keys.length) {
-        topRoot.innerHTML = '<div class="top-progress-item status-pending"><div class="top-progress-name">未选标签</div><div class="pill pending">待命</div></div>';
+        const emptyState = '<div class="top-progress-item status-pending"><div class="top-progress-name">未选标签</div><div class="pill pending">待命</div></div>';
+        roots.forEach((root) => { root.innerHTML = emptyState; });
         return;
       }
       keys.forEach((key) => {
         const raw = statuses && statuses[key] ? statuses[key] : "pending";
-        const topItem = document.createElement("div");
-        topItem.className = "top-progress-item status-" + raw;
-        const topName = document.createElement("div");
-        topName.className = "top-progress-name";
-        topName.textContent = targetLabel(key);
-        topName.title = targetFullLabel(key);
-        const topPill = document.createElement("div");
-        topPill.className = "pill " + raw;
-        topPill.textContent = STATUS_TEXT[raw] || raw;
-        topItem.appendChild(topName);
-        topItem.appendChild(topPill);
-        topRoot.appendChild(topItem);
+        roots.forEach((root) => {
+          const topItem = document.createElement("div");
+          topItem.className = "top-progress-item status-" + raw;
+          const topName = document.createElement("div");
+          topName.className = "top-progress-name";
+          topName.textContent = targetLabel(key);
+          topName.title = targetFullLabel(key);
+          const topPill = document.createElement("div");
+          topPill.className = "pill " + raw;
+          topPill.textContent = STATUS_TEXT[raw] || raw;
+          topItem.appendChild(topName);
+          topItem.appendChild(topPill);
+          root.appendChild(topItem);
+        });
       });
     }
 
@@ -2342,6 +2736,7 @@
     }
 
     applyStaticCopy();
+    rotateSidebarQuote();
     renderTags();
     renderSingleButtons();
     renderProgress();
@@ -2350,3 +2745,5 @@
   </script>
 </body>
 </html>
+
+
