@@ -51,11 +51,11 @@
     .shell {
       position: relative;
       z-index: 1;
-      width: min(1680px, calc(100vw - 24px));
-      margin: 16px auto 24px;
+      width: min(1620px, calc(100vw - 28px));
+      margin: 14px auto 22px;
       display: grid;
-      grid-template-columns: 340px minmax(0, 1fr);
-      gap: 16px;
+      grid-template-columns: 308px minmax(0, 1fr);
+      gap: 14px;
       align-items: start;
     }
     .panel {
@@ -71,13 +71,13 @@
       position: sticky;
       top: 16px;
       height: fit-content;
-      padding: 16px;
+      padding: 14px;
     }
     .field-hint {
-      margin-top: 8px;
+      margin-top: 6px;
       color: var(--muted);
-      font-size: 12px;
-      line-height: 1.65;
+      font-size: 11px;
+      line-height: 1.55;
     }
     .brand {
       padding: 18px;
@@ -153,17 +153,19 @@
     .tag-grid {
       display: flex;
       flex-wrap: wrap;
-      gap: 7px;
-      margin-top: 10px;
+      gap: 6px;
+      margin-top: 8px;
+      align-content: flex-start;
     }
     .tag {
-      padding: 7px 11px;
+      padding: 5px 10px;
       border-radius: 999px;
       border: 1px solid var(--line);
       background: rgba(255, 255, 255, 0.03);
       color: var(--muted);
       cursor: pointer;
-      font-size: 12px;
+      font-size: 11px;
+      line-height: 1.25;
       transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
       user-select: none;
     }
@@ -181,8 +183,8 @@
     .button-grid, .single-grid, .prompt-actions, .quick-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-top: 10px;
+      gap: 7px;
+      margin-top: 8px;
     }
     .button-grid-3 {
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -191,7 +193,7 @@
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
     .single-grid {
-      max-height: 176px;
+      max-height: 132px;
       overflow: auto;
     }
     .prompt-actions {
@@ -203,13 +205,13 @@
     }
     button {
       border: 0;
-      border-radius: 12px;
-      min-height: 38px;
-      padding: 10px 12px;
+      border-radius: 11px;
+      min-height: 34px;
+      padding: 8px 10px;
       cursor: pointer;
       color: var(--text);
       font: inherit;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease, border-color 0.16s ease;
     }
@@ -252,71 +254,50 @@
     .main {
       display: grid;
       grid-template-rows: auto 1fr;
-      gap: 16px;
+      gap: 12px;
       min-width: 0;
     }
     .action-dock {
-      position: sticky;
-      top: 16px;
-      z-index: 12;
-      padding: 18px;
+      position: relative;
+      z-index: 4;
+      padding: 12px;
       display: grid;
-      gap: 14px;
+      gap: 8px;
       background:
         linear-gradient(135deg, rgba(255, 107, 61, 0.1), transparent 38%),
         linear-gradient(180deg, rgba(10, 18, 28, 0.98), rgba(12, 20, 31, 0.96));
       backdrop-filter: blur(18px);
     }
-    .action-dock-head {
-      display: grid;
-      grid-template-columns: minmax(0, 1.25fr) 280px;
-      gap: 14px;
-      align-items: end;
-    }
-    .action-copy {
-      min-width: 0;
-    }
-    .action-copy h1 {
-      margin: 14px 0 0;
-      font-size: 28px;
-      line-height: 1.08;
-      letter-spacing: 0.01em;
-    }
-    .action-copy p {
-      margin: 10px 0 0;
-      color: var(--muted);
-      line-height: 1.7;
-      font-size: 13px;
-      max-width: 720px;
-    }
-    .action-date {
-      padding: 14px;
-      border-radius: 18px;
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.03);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
-    }
     .action-date-controls {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
-      gap: 8px;
+      gap: 6px;
       align-items: end;
     }
     .action-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
+      grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
+      grid-template-areas:
+        "quick actions"
+        "targets targets"
+        "singles singles";
+      gap: 8px;
+      align-items: start;
     }
     .action-grid-secondary {
       grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 2fr);
     }
     .action-group {
-      padding: 14px;
-      border-radius: 18px;
+      padding: 12px;
+      border-radius: 16px;
       border: 1px solid var(--line);
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015));
       min-width: 0;
     }
+    .action-group-quick { grid-area: quick; }
+    .action-group-actions { grid-area: actions; }
+    .action-group-targets { grid-area: targets; }
+    .action-group-singles { grid-area: singles; }
     .action-group-primary {
       background:
         linear-gradient(145deg, rgba(255, 107, 61, 0.12), transparent 55%),
@@ -328,39 +309,106 @@
     }
     .action-group-head {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
       gap: 10px;
+      margin-bottom: 8px;
     }
     .action-group-head h3 {
       margin: 0;
-      font-size: 14px;
+      font-size: 13px;
       letter-spacing: 0.01em;
     }
     .action-group-note {
-      padding: 4px 8px;
+      padding: 3px 7px;
       border-radius: 999px;
       border: 1px solid var(--line);
       background: rgba(255, 255, 255, 0.04);
       color: var(--muted);
-      font-size: 11px;
+      font-size: 10px;
       white-space: nowrap;
+    }
+    .action-control-stack {
+      display: grid;
+      gap: 10px;
+    }
+    .action-control-block {
+      display: grid;
+      gap: 6px;
+    }
+    .action-control-block + .action-control-block {
+      padding-top: 10px;
+      border-top: 1px solid rgba(118, 142, 170, 0.14);
+    }
+    .action-group-control label,
+    .side-controls label {
+      margin: 0;
+      font-size: 11px;
+    }
+    .action-group-control input,
+    .side-controls input {
+      padding: 9px 10px;
+    }
+    .action-group-control .field-hint,
+    .side-controls .field-hint {
+      margin-top: 2px;
+    }
+    .action-group-control .button-grid,
+    .side-controls .button-grid {
+      margin-top: 6px;
     }
     .action-group .quick-grid {
       grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-top: 0;
+    }
+    .action-group-actions .button-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-top: 0;
+    }
+    .action-group-actions .button-grid,
+    .action-group-targets .button-grid,
+    .action-group-control .button-grid,
+    .side-controls .button-grid {
+      margin-top: 8px;
+    }
+    .action-group-targets .tag-grid {
+      max-height: 82px;
+      overflow: auto;
+      padding-right: 2px;
     }
     .action-group-wide .single-grid {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      max-height: 126px;
+      display: flex;
+      flex-wrap: nowrap;
+      overflow: auto;
+      max-height: none;
+      gap: 7px;
+      margin-top: 6px;
+      padding-bottom: 2px;
+    }
+    .action-group-wide .single-grid button {
+      flex: 0 0 auto;
+      min-width: 76px;
+      padding-inline: 12px;
     }
     .quote-card {
-      padding: 16px;
+      padding: 14px;
       border-radius: 20px;
-      border: 1px solid rgba(255, 107, 61, 0.22);
+      border: 1px solid rgba(255, 191, 99, 0.4);
       background:
-        linear-gradient(145deg, rgba(255, 107, 61, 0.14), transparent 44%),
-        linear-gradient(180deg, rgba(15, 23, 35, 0.98), rgba(8, 15, 24, 0.96));
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        radial-gradient(circle at 12% 12%, rgba(255, 214, 128, 0.24), transparent 38%),
+        linear-gradient(155deg, rgba(255, 118, 54, 0.34), rgba(118, 39, 18, 0.28) 52%, rgba(13, 14, 19, 0.96) 100%);
+      box-shadow:
+        0 18px 40px rgba(78, 31, 8, 0.26),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+    .quote-card .eyebrow {
+      background: rgba(255, 214, 140, 0.18);
+      border-color: rgba(255, 214, 140, 0.34);
+      color: #fff0c9;
+    }
+    .quote-card .btn-ghost {
+      background: rgba(25, 12, 6, 0.22);
+      border-color: rgba(255, 196, 112, 0.24);
     }
     .quote-card-head {
       display: flex;
@@ -369,66 +417,87 @@
       align-items: flex-start;
     }
     .quote-card-head h3 {
-      margin: 12px 0 0;
-      font-size: 18px;
+      margin: 8px 0 0;
+      font-size: 17px;
       line-height: 1.2;
     }
     .quote-card-body {
-      margin-top: 14px;
-      padding: 14px;
-      border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      background: rgba(4, 10, 16, 0.42);
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 224, 173, 0.16);
+      background: linear-gradient(180deg, rgba(82, 38, 16, 0.34), rgba(16, 13, 18, 0.38));
       display: grid;
-      gap: 8px;
+      gap: 6px;
     }
     .quote-card-text {
-      font-size: 16px;
-      line-height: 1.8;
-      color: #f4f7fb;
-      min-height: 88px;
+      font-size: 15px;
+      line-height: 1.72;
+      color: #fff8ea;
+      min-height: 72px;
+      font-weight: 600;
     }
     .quote-card-meta {
-      margin-top: 10px;
-      color: var(--muted);
-      font-size: 12px;
-      letter-spacing: 0.04em;
+      margin-top: 6px;
+      color: #ffd5a6;
+      font-size: 11px;
+      letter-spacing: 0.03em;
     }
     .side-overview {
-      margin-top: 14px;
+      margin-top: 12px;
+      padding: 12px;
+    }
+    .side-controls {
+      margin-top: 12px;
+      padding: 12px;
+    }
+    .side-controls .action-group-head {
+      margin-bottom: 10px;
+    }
+    .side-controls .action-date-controls {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .side-controls #tradeDateHint {
+      display: none;
     }
     .side-overview-head {
       display: grid;
-      gap: 12px;
+      gap: 10px;
     }
     .side-status {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 8px;
       align-items: center;
     }
     .side-status strong {
-      font-size: 24px;
+      font-size: 20px;
       letter-spacing: -0.02em;
     }
     .sidebar-metrics {
-      margin-top: 12px;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .side-overview .hero-metrics {
-      margin-top: 14px;
-    }
-    .side-overview .metric .sub {
-      display: block;
-      margin-top: 8px;
-      color: var(--muted);
-      font-size: 11px;
-      line-height: 1.55;
-    }
-    .sidebar-progress {
       margin-top: 10px;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      padding: 8px;
+      gap: 8px;
+    }
+    .side-overview .hero-metrics {
+      margin-top: 10px;
+    }
+    .side-overview .metric {
+      padding: 10px;
+      min-height: 0;
+    }
+    .side-overview .metric .value {
+      margin-top: 4px;
+      font-size: 18px;
+    }
+    .side-overview .metric .sub {
+      display: none;
+    }
+    .sidebar-progress {
+      margin-top: 8px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      padding: 6px;
+      gap: 6px;
     }
     .hero {
       padding: 14px;
@@ -478,7 +547,7 @@
       gap: 8px;
     }
     .metric {
-      padding: 12px;
+      padding: 10px;
       border-radius: 14px;
       border: 1px solid var(--line);
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
@@ -490,7 +559,7 @@
       color: var(--muted);
     }
     .metric .value {
-      margin-top: 6px;
+      margin-top: 5px;
       font-size: 22px;
       font-weight: 700;
       line-height: 1;
@@ -513,14 +582,14 @@
     }
     .top-progress-item {
       min-width: 0;
-      min-height: 60px;
-      padding: 10px 12px;
+      min-height: 54px;
+      padding: 8px 10px;
       border-radius: 14px;
       border: 1px solid var(--line);
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.025));
       display: grid;
       align-content: space-between;
-      gap: 8px;
+      gap: 6px;
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
     }
     .top-progress-item.status-queued,
@@ -580,16 +649,16 @@
     .toolbar-chips {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 5px;
     }
     .toolbar-chip {
-      padding: 6px 10px;
+      padding: 5px 9px;
       border-radius: 999px;
       border: 1px solid var(--line);
       background: rgba(255, 255, 255, 0.04);
       color: #dce7f5;
       font-size: 11px;
-      line-height: 1.4;
+      line-height: 1.3;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -607,11 +676,11 @@
     .status-text {
       display: inline-flex;
       align-items: center;
-      padding: 6px 10px;
+      padding: 5px 9px;
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.05);
       color: var(--muted);
-      font-size: 12px;
+      font-size: 11px;
       border: 1px solid var(--line);
     }
     .status-text.ok {
@@ -629,7 +698,7 @@
       display: grid;
       grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.82fr);
       gap: 16px;
-      min-height: 760px;
+      min-height: calc(100vh - 176px);
     }
     .workspace-left, .workspace-right {
       display: grid;
@@ -637,10 +706,10 @@
       min-height: 0;
     }
     .workspace-left {
-      grid-template-rows: minmax(460px, 1fr) 240px;
+      grid-template-rows: minmax(420px, 1fr) 220px;
     }
     .workspace-right {
-      grid-template-rows: minmax(250px, 0.95fr) minmax(220px, 0.8fr);
+      grid-template-rows: 168px minmax(0, 1fr);
     }
     .card {
       display: flex;
@@ -654,6 +723,9 @@
     .card-featured {
       border-color: rgba(255, 107, 61, 0.2);
       box-shadow: 0 0 0 1px rgba(255, 107, 61, 0.08), var(--shadow-soft);
+    }
+    .prompt-card {
+      min-height: 0;
     }
     .card-head {
       padding: 14px 16px;
@@ -693,6 +765,9 @@
       flex: 1;
       min-height: 0;
     }
+    .prompt-card .card-body {
+      padding-top: 10px;
+    }
     .scroll {
       width: 100%;
       height: 100%;
@@ -715,9 +790,9 @@
       font-family: var(--mono);
     }
     .btn-mini {
-      padding: 7px 10px;
-      font-size: 12px;
-      min-height: 34px;
+      padding: 6px 9px;
+      font-size: 11px;
+      min-height: 30px;
     }
     .text-editor {
       width: 100%;
@@ -731,6 +806,28 @@
       line-height: 1.74;
       font-size: 13px;
       font-family: var(--mono);
+    }
+    .prompt-preview {
+      height: 100%;
+      min-height: 0;
+      padding: 12px 14px;
+      border: 1px solid rgba(118, 142, 170, 0.14);
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(4, 10, 16, 0.96), rgba(7, 14, 24, 0.84));
+      color: #d5e2ef;
+      line-height: 1.65;
+      font-size: 12px;
+      font-family: var(--mono);
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow: auto;
+    }
+    .prompt-preview.is-empty {
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--muted);
+      font-family: var(--sans);
     }
     .dataset {
       padding: 12px;
@@ -964,13 +1061,40 @@
     }
     @media (max-width: 1380px) {
       .shell { grid-template-columns: 1fr; }
-      .sidebar { position: static; }
-      .action-dock { position: static; }
-      .action-grid, .action-grid-secondary, .workspace { grid-template-columns: 1fr; }
+      .sidebar {
+        position: static;
+        display: grid;
+        grid-template-columns: minmax(280px, 0.82fr) minmax(0, 1.18fr);
+        gap: 12px;
+      }
+      .side-overview { margin-top: 0; }
+      .action-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-areas:
+          "quick actions"
+          "targets targets"
+          "singles singles";
+      }
+      .action-grid-secondary,
+      .workspace { grid-template-columns: 1fr; }
       .workspace-left, .workspace-right { grid-template-rows: auto auto; }
     }
     @media (max-width: 1080px) {
-      .action-dock-head { grid-template-columns: 1fr; }
+      .sidebar { grid-template-columns: 1fr; }
+      .action-grid {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "quick"
+          "actions"
+          "targets"
+          "singles";
+      }
+      .action-group-actions .button-grid { grid-template-columns: 1fr 1fr; }
+      .action-group-targets .tag-grid { max-height: none; }
+      .action-group-wide .single-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+      }
       .workspace { min-height: auto; }
       .workspace-right { grid-template-rows: auto auto; }
       .sidebar-metrics { grid-template-columns: 1fr 1fr; }
@@ -980,6 +1104,8 @@
         width: min(100%, calc(100vw - 24px));
         margin: 12px auto 24px;
       }
+      .sidebar,
+      .action-dock { padding: 12px; }
       .action-date-controls,
       .action-group .quick-grid,
       .button-grid-3,
@@ -988,15 +1114,16 @@
         grid-template-columns: 1fr;
       }
       .button-grid, .single-grid { grid-template-columns: 1fr 1fr; }
+      .action-group-actions .button-grid { grid-template-columns: 1fr 1fr; }
       .action-group-wide .single-grid { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 640px) {
-      .action-copy h1 { font-size: 24px; }
       .sidebar-metrics { grid-template-columns: 1fr; }
       .sidebar-progress,
       .button-grid,
       .single-grid,
       .action-group-wide .single-grid { grid-template-columns: 1fr; }
+      .quote-card-text { min-height: auto; }
       .card-head-split { flex-direction: column; }
     }
   </style>
@@ -1057,6 +1184,35 @@
           <div class="top-progress-item status-pending">
             <div class="top-progress-name">未选标签</div>
             <div class="pill pending">待命</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section side-controls">
+        <div class="action-group-head">
+          <h3 id="groupControlTitle">本机与日期</h3>
+          <span class="action-group-note" id="groupControlNote">左侧</span>
+        </div>
+        <div class="action-control-stack">
+          <div class="action-control-block">
+            <label for="tradeDate" id="tradeDateLabel">交易日期</label>
+            <div class="action-date-controls">
+              <input id="tradeDate" />
+              <button class="btn-ghost" id="refreshStateButton" onclick="refreshState()">刷新状态</button>
+            </div>
+            <div class="field-hint" id="tradeDateHint">切换日期后，抓取、解析和快捷流都作用于当前交易日。</div>
+          </div>
+
+          <div class="action-control-block">
+            <label for="kimiKey" id="kimiKeyLabel">Kimi API Key</label>
+            <input id="kimiKey" type="password" placeholder="可留空，优先读取环境变量 MOONSHOT_API_KEY" />
+            <div id="kimiKeyHint" class="field-hint">当前未保存本机密钥</div>
+            <label for="kimiModel" id="kimiModelLabel">Kimi 模型</label>
+            <input id="kimiModel" value="%DEFAULT_MODEL%" />
+            <div class="button-grid">
+              <button class="btn-ghost" id="saveSettingsButton" onclick="saveSettings()">保存配置</button>
+              <button class="btn-ghost" id="clearKeyButton" onclick="clearKeyInput()">清空输入</button>
+            </div>
           </div>
         </div>
       </section>
@@ -1128,24 +1284,8 @@
 
     <main class="main">
       <section class="panel action-dock">
-        <div class="action-dock-head">
-          <div class="action-copy">
-            <div class="eyebrow" id="actionDockBadge">Research Flow</div>
-            <h1 id="actionDockTitle">把高频操作全部收口到顶部。</h1>
-            <p id="actionDockDesc">日期、标签、抓取、解析、快捷流都放在首屏，下面只保留数据、提示词、AI 结论和日志。</p>
-          </div>
-          <div class="action-date">
-            <label for="tradeDate" id="tradeDateLabel">交易日期</label>
-            <div class="action-date-controls">
-              <input id="tradeDate" />
-              <button class="btn-ghost" id="refreshStateButton" onclick="refreshState()">刷新状态</button>
-            </div>
-            <div class="field-hint" id="tradeDateHint">切换日期后，顶部操作全部作用于当前交易日。</div>
-          </div>
-        </div>
-
         <div class="action-grid">
-          <section class="action-group action-group-primary">
+          <section class="action-group action-group-primary action-group-quick">
             <div class="action-group-head">
               <h3 id="groupQuickTitle">快捷工作流</h3>
               <span class="action-group-note" id="groupQuickNote">高频</span>
@@ -1157,7 +1297,7 @@
             </div>
           </section>
 
-          <section class="action-group">
+          <section class="action-group action-group-actions">
             <div class="action-group-head">
               <h3 id="groupActionsTitle">高频操作</h3>
               <span class="action-group-note" id="groupActionsNote">先抓后解</span>
@@ -1170,7 +1310,7 @@
             </div>
           </section>
 
-          <section class="action-group">
+          <section class="action-group action-group-targets">
             <div class="action-group-head">
               <h3 id="groupTargetsTitle">标签选择</h3>
               <span class="action-group-note" id="groupTargetsNote">按需收缩</span>
@@ -1182,23 +1322,7 @@
             </div>
           </section>
 
-          <section class="action-group">
-            <div class="action-group-head">
-              <h3 id="groupSettingsTitle">Kimi 配置</h3>
-              <span class="action-group-note" id="groupSettingsNote">本机保存</span>
-            </div>
-            <label for="kimiKey" id="kimiKeyLabel">Kimi API Key</label>
-            <input id="kimiKey" type="password" placeholder="可留空，优先读取环境变量 MOONSHOT_API_KEY" />
-            <div id="kimiKeyHint" class="field-hint">当前未保存本机密钥</div>
-            <label for="kimiModel" id="kimiModelLabel">Kimi 模型</label>
-            <input id="kimiModel" value="%DEFAULT_MODEL%" />
-            <div class="button-grid">
-              <button class="btn-ghost" id="saveSettingsButton" onclick="saveSettings()">保存配置</button>
-              <button class="btn-ghost" id="clearKeyButton" onclick="clearKeyInput()">清空输入</button>
-            </div>
-          </section>
-
-          <section class="action-group action-group-wide">
+          <section class="action-group action-group-wide action-group-singles">
             <div class="action-group-head">
               <h3 id="groupSinglesTitle">单模块补抓</h3>
               <span class="action-group-note" id="groupSinglesNote">低频</span>
@@ -1298,18 +1422,19 @@
         </div>
 
         <div class="workspace-right">
-          <section class="card">
-            <div class="card-head">
-              <h3>AI 提示词工作区</h3>
-              <p>保留复制、恢复和二次追问能力，但把阅读重心让给最终结论。</p>
+          <section class="card prompt-card">
+            <div class="card-head card-head-split">
+              <div class="card-head-copy">
+                <h3>AI 提示词</h3>
+                <p>仅保留预览和复制入口。</p>
+              </div>
+              <div class="card-head-actions">
+                <button class="btn-ghost btn-mini" onclick="copyPrompt()">复制</button>
+              </div>
             </div>
             <div class="card-body">
-              <textarea id="promptEditor" class="text-editor">尚未生成 AI 提示词。</textarea>
-              <div class="prompt-actions">
-                <button class="btn-ghost" onclick="copyPrompt()">复制提示词</button>
-                <button class="btn-ghost" onclick="resetPrompt()">恢复原提示词</button>
-                <button class="btn-secondary" onclick="reanalyzeWithEditedPrompt()">修改后重新询问</button>
-              </div>
+              <div id="promptPreview" class="prompt-preview is-empty">尚未生成 AI 提示词。</div>
+              <textarea id="promptEditor" class="text-editor" hidden aria-hidden="true">尚未生成 AI 提示词。</textarea>
             </div>
           </section>
 
@@ -1439,7 +1564,11 @@
       const el = document.getElementById("statusText");
       el.textContent = text;
       el.className = "status-text" + (running ? " running" : ok ? " ok" : "");
-      document.getElementById("metricStatus").textContent = running ? "运行中" : ok ? "完成" : text;
+      const statusText = running ? "运行中" : ok ? "完成" : text;
+      ["metricStatus", "metricStatusLegacy"].forEach((id) => {
+        const node = document.getElementById(id);
+        if (node) node.textContent = statusText;
+      });
     }
 
     function setNodeText(selector, text) {
@@ -1450,6 +1579,13 @@
     function setNodeHtml(selector, html) {
       const node = document.querySelector(selector);
       if (node) node.innerHTML = html;
+    }
+
+    function setTextByIds(ids = [], text = "") {
+      ids.forEach((id) => {
+        const node = document.getElementById(id);
+        if (node) node.textContent = text;
+      });
     }
 
     function rotateSidebarQuote(forceIndex = null) {
@@ -1468,15 +1604,14 @@
       setNodeText("title", "A股看盘工作台");
 
       setNodeText("#sidebarQuoteBadge", "短线提醒");
-      setNodeText("#sidebarQuoteTitle", "侧边栏随机提示");
+      setNodeText("#sidebarQuoteTitle", "短线交易提醒");
       setNodeText("#sidebarQuoteAction", "换一句");
       setNodeText("#sidebarOverviewBadge", "侧边信息");
 
-      setNodeText("#actionDockBadge", "顶部操作台");
-      setNodeText("#actionDockTitle", "把高频操作全部收口到顶部。");
-      setNodeText("#actionDockDesc", "根据使用频次重排按钮：先切日期，再选标签，然后直接抓取或发起快捷解析，减少来回滚动。");
+      setNodeText("#groupControlTitle", "本机与日期");
+      setNodeText("#groupControlNote", "左侧");
       setNodeText("#tradeDateLabel", "交易日期");
-      setNodeText("#tradeDateHint", "切换日期后，顶部的抓取、解析和快捷流都作用于当前交易日。");
+      setNodeText("#tradeDateHint", "切换日期后，抓取、解析和快捷流都作用于当前交易日。");
       setNodeText("#refreshStateButton", "刷新状态");
 
       setNodeText("#groupQuickTitle", "快捷工作流");
@@ -1486,19 +1621,17 @@
       setNodeText("#quickCloseButton", "盘后复盘");
 
       setNodeText("#groupActionsTitle", "高频操作");
-      setNodeText("#groupActionsNote", "先抓后解");
+      setNodeText("#groupActionsNote", "抓取 / 解析");
       setNodeText("#fetchSelectedButton", "抓取所选");
       setNodeText("#fetchAllButton", "抓取全部");
       setNodeText("#analyzeSelectedButton", "解析所选");
       setNodeText("#analyzeAllButton", "全量解析");
 
       setNodeText("#groupTargetsTitle", "标签选择");
-      setNodeText("#groupTargetsNote", "按需收缩");
+      setNodeText("#groupTargetsNote", "多选");
       setNodeText("#selectAllButton", "全选标签");
       setNodeText("#clearTargetsButton", "清空标签");
 
-      setNodeText("#groupSettingsTitle", "Kimi 配置");
-      setNodeText("#groupSettingsNote", "本机保存");
       setNodeText("#kimiKeyLabel", "Kimi API Key");
       setNodeText("#kimiModelLabel", "Kimi 模型");
       setNodeText("#saveSettingsButton", "保存配置");
@@ -1517,18 +1650,16 @@
       const cardTitles = document.querySelectorAll(".workspace .card-head h3");
       if (cardTitles[0]) cardTitles[0].textContent = "标签数据";
       if (cardTitles[1]) cardTitles[1].textContent = "执行日志";
-      if (cardTitles[2]) cardTitles[2].textContent = "AI 提示词工作区";
+      if (cardTitles[2]) cardTitles[2].textContent = "AI 提示词";
       if (cardTitles[3]) cardTitles[3].textContent = "AI 结构化结论";
 
       const cardDescs = document.querySelectorAll(".workspace .card-head p");
       if (cardDescs[0]) cardDescs[0].textContent = "这里只展示当前抓取或当前分析需要的标签数据，不再把原始噪音堆满首屏。";
       if (cardDescs[1]) cardDescs[1].textContent = "日志仅用于排障，主界面阅读重点是数据与结论。";
-      if (cardDescs[2]) cardDescs[2].textContent = "抓取完成后会自动生成提示词，你仍然可以手改后重新发起提问。";
+      if (cardDescs[2]) cardDescs[2].textContent = "这里只保留提示词预览和复制入口，不再占用右侧主阅读区。";
       if (cardDescs[3]) cardDescs[3].textContent = "把标题、要点、表格和阶段判断集中到这里，方便复盘和盘中查看。";
 
-      setNodeText('button[onclick="copyPrompt()"]', "复制全文");
-      setNodeText('button[onclick="resetPrompt()"]', "恢复原提示词");
-      setNodeText('button[onclick="reanalyzeWithEditedPrompt()"]', "修改后重跑");
+      setNodeText('button[onclick="copyPrompt()"]', "复制");
       setNodeText('button[onclick="copyAnalysisSnapshot()"]', "复制截图");
     }
 
@@ -2254,16 +2385,17 @@
     function updateMetrics() {
       const availableCount = Array.isArray(state.availableTargets) ? state.availableTargets.length : 0;
       const selected = orderedTargetList(Array.from(selectedTargets));
-      document.getElementById("metricDate").textContent = state.currentDate || "-";
-      document.getElementById("metricAvailable").textContent = String(availableCount);
-      document.getElementById("metricTargets").textContent = String(selectedTargets.size);
-      document.getElementById("currentDate").textContent = state.currentDate || "-";
+      const currentDateText = state.currentDate || "-";
+      setTextByIds(["metricDate", "metricDateLegacy"], currentDateText);
+      setTextByIds(["metricAvailable", "metricAvailableLegacy"], String(availableCount));
+      setTextByIds(["metricTargets", "metricTargetsLegacy"], String(selectedTargets.size));
+      document.getElementById("currentDate").textContent = currentDateText;
       const summary = document.getElementById("selectionSummary");
       if (summary) {
         const chips = [];
         chips.push(`<div class="toolbar-chip ${selected.length ? "" : "warn"}">${selected.length ? `已选 ${selected.length} 个标签` : "未选择标签"}</div>`);
         if (selected.length) {
-          chips.push(`<div class="toolbar-chip accent">${escapeHtml(summarizeSelectionTargets(selected))}</div>`);
+          chips.push(`<div class="toolbar-chip accent">${escapeHtml(summarizeSelectionTargets(selected, 3))}</div>`);
         }
         chips.push(`<div class="toolbar-chip">已有数据 ${availableCount} 项</div>`);
         if (chips.length) {
@@ -2372,7 +2504,15 @@
 
     function setPromptContent(text) {
       lastPrompt = text || "";
-      document.getElementById("promptEditor").value = text || "尚未生成 AI 提示词。";
+      const placeholder = "尚未生成 AI 提示词。";
+      const promptText = text || placeholder;
+      const editor = document.getElementById("promptEditor");
+      if (editor) editor.value = promptText;
+      const preview = document.getElementById("promptPreview");
+      if (preview) {
+        preview.textContent = promptText;
+        preview.classList.toggle("is-empty", !text);
+      }
     }
 
     function setAnalysisContent(text) {
@@ -2724,7 +2864,7 @@
     }
 
     function resetPrompt() {
-      document.getElementById("promptEditor").value = lastPrompt || "尚未生成 AI 提示词。";
+      setPromptContent(lastPrompt);
       setStatus("提示词已恢复", true);
     }
 
