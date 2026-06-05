@@ -1,8 +1,8 @@
 ﻿# data 目录索引
 
-> 生成时间：2026-06-04 19:29:45
+> 生成时间：2026-06-05 19:41:45
 > 本文件覆盖 data 目录当前可见内容，并保留已有历史文件入口。
-> 日期目录数量：99
+> 日期目录数量：100
 > 编码：UTF-8 with BOM
 
 ## 主要文件
@@ -18,6 +18,7 @@
 | 日期目录 | 合计条数 | 日文件 |
 | --- | ---: | --- |
 | [./eastmoney_shortline/](./eastmoney_shortline/) | - | - |
+| [./2026-06-05/](./2026-06-05/) | 554 | [shortline.md](./2026-06-05/shortline.md) |
 | [./2026-06-04/](./2026-06-04/) | 472 | [shortline.md](./2026-06-04/shortline.md) |
 | [./2026-06-03/](./2026-06-03/) | 510 | [shortline.md](./2026-06-03/shortline.md) |
 | [./2026-06-02/](./2026-06-02/) | 521 | [shortline.md](./2026-06-02/shortline.md) |
@@ -327,6 +328,8 @@
 | 文件 | [./2026-06-03/shortline.md](./2026-06-03/shortline.md) |
 | 目录 | [./2026-06-04/](./2026-06-04/) |
 | 文件 | [./2026-06-04/shortline.md](./2026-06-04/shortline.md) |
+| 目录 | [./2026-06-05/](./2026-06-05/) |
+| 文件 | [./2026-06-05/shortline.md](./2026-06-05/shortline.md) |
 | 目录 | [./eastmoney_shortline/](./eastmoney_shortline/) |
 | 目录 | [./eastmoney_shortline/2026-02-01/](./eastmoney_shortline/2026-02-01/) |
 | 文件 | [./eastmoney_shortline/2026-02-01/shortline.md](./eastmoney_shortline/2026-02-01/shortline.md) |
