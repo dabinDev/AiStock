@@ -149,11 +149,23 @@ def subprocess_env() -> dict[str, str]:
     env = sanitize_proxy_env(os.environ.copy())
     env["PYTHONUTF8"] = "1"
     env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONUNBUFFERED"] = "1"
     return env
 
 
 def is_windows() -> bool:
     return os.name == "nt"
+
+
+def hidden_subprocess_kwargs() -> dict[str, Any]:
+    if not is_windows():
+        return {}
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    return {
+        "creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        "startupinfo": startupinfo,
+    }
 
 
 def normalize_date(value: str | None) -> str:
@@ -970,7 +982,7 @@ def start_fetch_job(date_text: str, targets: list[str]) -> str:
                     meta = TARGETS[target]
                     local_env = subprocess_env()
                     set_job_target_status(job_id, target, "running")
-                    append_job_log(job_id, f"[{meta['label']}] 鍚姩鎶撳彇")
+                    append_job_log(job_id, f"[{meta['label']}] 启动抓取")
                     args = export_command(date_text, target)
                     if getattr(sys, "frozen", False):
                         local_env["ASTOCK_EMBEDDED_SCRIPT"] = "market_overview"
@@ -984,6 +996,7 @@ def start_fetch_job(date_text: str, targets: list[str]) -> str:
                         encoding="utf-8",
                         errors="replace",
                         env=local_env,
+                        **hidden_subprocess_kwargs(),
                     )
                     assert process.stdout is not None
                     for line in process.stdout:
@@ -1008,7 +1021,7 @@ def start_fetch_job(date_text: str, targets: list[str]) -> str:
 
                         if return_code != 0:
                             set_job_target_status(job_id, target, "failed")
-                            failures.append(f"{meta['label']} 鎶撳彇澶辫触锛岄€€鍑虹爜 {return_code}")
+                            failures.append(f"{meta['label']} 抓取失败，退出码 {return_code}")
                         else:
                             set_job_target_status(job_id, target, "completed")
 
@@ -1054,6 +1067,7 @@ def start_fetch_job(date_text: str, targets: list[str]) -> str:
                     encoding="utf-8",
                     errors="replace",
                     env=env,
+                    **hidden_subprocess_kwargs(),
                 )
                 assert process.stdout is not None
                 for line in process.stdout:

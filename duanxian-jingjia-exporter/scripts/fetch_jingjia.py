@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from dataclasses import dataclass
@@ -26,6 +27,14 @@ META_PREFIX = "<!-- JINGJIA_META "
 META_SUFFIX = " -->"
 SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
 BROWSER_LAUNCH_ARGS = ["--proxy-server=direct://", "--proxy-bypass-list=*"]
+CUSTOM_BROWSER_PATH = os.getenv("PLAYWRIGHT_CHROME_EXECUTABLE", "").strip()
+SYSTEM_BROWSER_CANDIDATES = [
+    *([Path(CUSTOM_BROWSER_PATH)] if CUSTOM_BROWSER_PATH else []),
+    Path("C:/Program Files/Google/Chrome/Application/chrome.exe"),
+    Path("C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"),
+    Path("C:/Program Files/Microsoft/Edge/Application/msedge.exe"),
+    Path("C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"),
+]
 HEADER_SELECTORS = [
     ("live", "#thlive", "#tblive"),
     ("history", "#th1", "#tb1"),
@@ -256,6 +265,14 @@ def rebuild_summary(output_root: Path, summary_name: str, daily_name: str) -> Pa
 
 
 def launch_browser(playwright):
+    def launch_executable(path: Path):
+        return playwright.chromium.launch(
+            executable_path=str(path),
+            headless=True,
+            proxy={"server": "direct://"},
+            args=BROWSER_LAUNCH_ARGS,
+        )
+
     def launch_channel(channel: str | None = None):
         kwargs: dict[str, Any] = {
             "headless": True,
@@ -267,6 +284,11 @@ def launch_browser(playwright):
         return playwright.chromium.launch(**kwargs)
 
     attempts = [
+        *[
+            (str(path), lambda path=path: launch_executable(path))
+            for path in SYSTEM_BROWSER_CANDIDATES
+            if str(path) and path.exists()
+        ],
         ("msedge", lambda: launch_channel("msedge")),
         ("chrome", lambda: launch_channel("chrome")),
         ("chromium", launch_channel),
@@ -353,7 +375,7 @@ def collect_sections(wait_ms: int) -> list[SnapshotSection]:
                 """
                 () => {
                   const header = document.querySelector('#thlive');
-                  const rows = document.querySelectorAll('#tblive .fd');
+                  const rows = document.querySelectorAll('#tblive .fd, #tb1 .fd, #tb2 .fd, #tb3 .fd, #tb4 .fd');
                   return !!header && /\\d{4}-\\d{2}-\\d{2}/.test(header.innerText) && rows.length > 0;
                 }
                 """,

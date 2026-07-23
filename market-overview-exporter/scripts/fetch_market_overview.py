@@ -30,6 +30,14 @@ DEFAULT_AI_FILE = "ai-analysis.md"
 DASHBOARD_META_PREFIX = "<!-- MARKET_OVERVIEW_META "
 META_SUFFIX = " -->"
 BROWSER_LAUNCH_ARGS = ["--proxy-server=direct://", "--proxy-bypass-list=*"]
+CUSTOM_BROWSER_PATH = os.getenv("PLAYWRIGHT_CHROME_EXECUTABLE", "").strip()
+SYSTEM_BROWSER_CANDIDATES = [
+    *([Path(CUSTOM_BROWSER_PATH)] if CUSTOM_BROWSER_PATH else []),
+    Path("C:/Program Files/Google/Chrome/Application/chrome.exe"),
+    Path("C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"),
+    Path("C:/Program Files/Microsoft/Edge/Application/msedge.exe"),
+    Path("C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"),
+]
 
 JINGJIA_SCRIPT = ROOT / "duanxian-jingjia-exporter" / "scripts" / "fetch_jingjia.py"
 JJYD_SCRIPT = ROOT / "duanxian-workflow" / "scripts" / "fetch_jjyd.py"
@@ -249,8 +257,20 @@ def build_embedded_command(script_key: str, script_path: Path, args: list[str]) 
     if getattr(sys, "frozen", False):
         env = os.environ.copy()
         env["ASTOCK_EMBEDDED_SCRIPT"] = script_key
+        env["PYTHONUNBUFFERED"] = "1"
         return [sys.executable, *args], env
     return [sys.executable, str(script_path), *args], None
+
+
+def hidden_subprocess_kwargs() -> dict[str, Any]:
+    if os.name != "nt":
+        return {}
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    return {
+        "creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        "startupinfo": startupinfo,
+    }
 
 
 def run_external_script(
@@ -259,18 +279,29 @@ def run_external_script(
     target: str,
     env: dict[str, str] | None = None,
 ) -> ExportResult:
-    result = subprocess.run(
+    local_env = os.environ.copy() if env is None else env.copy()
+    local_env["PYTHONUNBUFFERED"] = "1"
+    process = subprocess.Popen(
         command,
-        check=False,
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
         text=True,
         encoding="utf-8",
         errors="replace",
-        env=env,
+        env=local_env,
+        **hidden_subprocess_kwargs(),
     )
-    if result.returncode != 0:
-        detail = "\n".join(part for part in [result.stdout.strip(), result.stderr.strip()] if part)
-        raise SystemExit(f"{target} 抓取失败，退出码 {result.returncode}\n{detail}")
+    assert process.stdout is not None
+    output_lines: list[str] = []
+    for line in process.stdout:
+        text = line.strip()
+        if text:
+            output_lines.append(text)
+            print(text, flush=True)
+    return_code = process.wait()
+    if return_code != 0:
+        detail = "\n".join(output_lines[-40:])
+        raise SystemExit(f"{target} 抓取失败，退出码 {return_code}\n{detail}")
     if not expected_file.exists():
         raise SystemExit(f"{target} 抓取已执行，但未找到输出文件：{expected_file}")
     return ExportResult(target=target, output_file=expected_file, note="复用现有脚本")
@@ -313,6 +344,14 @@ def export_existing_targets(output_root: Path, target_date: str, targets: list[s
 
 
 def launch_browser(playwright):
+    def launch_executable(path: Path):
+        return playwright.chromium.launch(
+            executable_path=str(path),
+            headless=True,
+            proxy={"server": "direct://"},
+            args=BROWSER_LAUNCH_ARGS,
+        )
+
     def launch_channel(channel: str | None = None):
         kwargs: dict[str, Any] = {
             "headless": True,
@@ -324,6 +363,11 @@ def launch_browser(playwright):
         return playwright.chromium.launch(**kwargs)
 
     attempts = [
+        *[
+            (str(path), lambda path=path: launch_executable(path))
+            for path in SYSTEM_BROWSER_CANDIDATES
+            if str(path) and path.exists()
+        ],
         ("msedge", lambda: launch_channel("msedge")),
         ("chrome", lambda: launch_channel("chrome")),
         ("chromium", launch_channel),

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from dataclasses import dataclass
@@ -29,6 +30,14 @@ DEFAULT_SUMMARY_FILE = "jjyd_summary.md"
 META_PREFIX = "<!-- JJYD_META "
 META_SUFFIX = " -->"
 BROWSER_LAUNCH_ARGS = ["--proxy-server=direct://", "--proxy-bypass-list=*"]
+CUSTOM_BROWSER_PATH = os.getenv("PLAYWRIGHT_CHROME_EXECUTABLE", "").strip()
+SYSTEM_BROWSER_CANDIDATES = [
+    *([Path(CUSTOM_BROWSER_PATH)] if CUSTOM_BROWSER_PATH else []),
+    Path("C:/Program Files/Google/Chrome/Application/chrome.exe"),
+    Path("C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"),
+    Path("C:/Program Files/Microsoft/Edge/Application/msedge.exe"),
+    Path("C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"),
+]
 
 
 @dataclass(frozen=True)
@@ -111,6 +120,14 @@ def read_meta(path: Path) -> dict[str, Any] | None:
 
 
 def launch_browser(playwright):
+    def launch_executable(path: Path):
+        return playwright.chromium.launch(
+            executable_path=str(path),
+            headless=True,
+            proxy={"server": "direct://"},
+            args=BROWSER_LAUNCH_ARGS,
+        )
+
     def launch_channel(channel: str | None = None):
         kwargs: dict[str, Any] = {
             "headless": True,
@@ -122,6 +139,11 @@ def launch_browser(playwright):
         return playwright.chromium.launch(**kwargs)
 
     attempts = [
+        *[
+            (str(path), lambda path=path: launch_executable(path))
+            for path in SYSTEM_BROWSER_CANDIDATES
+            if str(path) and path.exists()
+        ],
         ("msedge", lambda: launch_channel("msedge")),
         ("chrome", lambda: launch_channel("chrome")),
         ("chromium", launch_channel),
