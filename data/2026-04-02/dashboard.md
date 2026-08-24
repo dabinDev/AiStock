@@ -1,13 +1,13 @@
 ﻿# 综合导航 - 2026-04-02
 
-<!-- MARKET_OVERVIEW_META {"date":"2026-04-02","generated_at":"2026-04-02 19:36:00","targets":["jinji"]} -->
+<!-- MARKET_OVERVIEW_META {"date":"2026-04-02","generated_at":"2026-06-09 14:01:20","targets":["yidong"]} -->
 
-> 生成时间：2026-04-02 19:36:00
+> 生成时间：2026-06-09 14:01:20
 > 使用方式：手动点击数据文件查看原始导出，再点击 AI 解析入口执行后续分析。
 
 | 页面 | 数据文件 | 说明 | AI 解析 |
 | --- | --- | --- | --- |
-| 涨停股票池晋级 | [jinji.md](./jinji.md) | 复用现有脚本 | [AI解析](./ai-analysis.md) |
+| 异动播报 | [yidong.md](./yidong.md) | 复用现有脚本 | [AI解析](./ai-analysis.md) |
 
 ## 快速入口
 
