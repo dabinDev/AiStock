@@ -145,7 +145,7 @@ class ExportResult:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="统一抓取多页面数据并生成 AI 解析入口")
     parser.add_argument("--output-root", default=str(DEFAULT_OUTPUT_ROOT), help="输出根目录，默认仓库 data 目录")
-    parser.add_argument("--date", help="目标日期，仅用于目录命名，默认使用上海今日")
+    parser.add_argument("--date", help="目标日期，默认上海今日；历史采集仅支持源站可见竞价")
     parser.add_argument(
         "--targets",
         default="all",
@@ -154,6 +154,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--summary-file", default=DEFAULT_SUMMARY_FILE, help=f"根目录汇总文件名，默认 {DEFAULT_SUMMARY_FILE}")
     parser.add_argument("--dashboard-file", default=DEFAULT_DASHBOARD_FILE, help=f"日目录导航文件名，默认 {DEFAULT_DASHBOARD_FILE}")
     parser.add_argument("--ai-file", default=DEFAULT_AI_FILE, help=f"AI 解析入口文件名，默认 {DEFAULT_AI_FILE}")
+    index_mode = parser.add_mutually_exclusive_group()
+    index_mode.add_argument("--skip-index", action="store_true", help="仅抓取数据，由调用方统一重建导航")
+    index_mode.add_argument("--rebuild-only", action="store_true", help="只根据现有文件重建指定日期导航与汇总")
     args = parser.parse_args()
     args.target_date = normalize_date(args.date) if args.date else today_text()
     args.target_list = normalize_targets(args.targets, parser)
@@ -164,6 +167,10 @@ def normalize_date(value: str) -> str:
     cleaned = value.strip()
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", cleaned):
         raise SystemExit(f"无法识别日期格式：{value}")
+    try:
+        datetime.strptime(cleaned, "%Y-%m-%d")
+    except ValueError as exc:
+        raise SystemExit(f"无法识别日期格式：{value}") from exc
     return cleaned
 
 
@@ -529,11 +536,13 @@ def collect_fupan(page: Page) -> tuple[str, int]:
         page,
         url,
         5000,
-        "() => document.querySelectorAll('.chart').length > 0 || document.querySelectorAll('#plates tr').length > 0 || document.querySelectorAll('table.ztlist tr').length > 0",
+        "() => /^\\d{4}-\\d{2}-\\d{2}$/.test(document.querySelector('#fdate')?.value || '') && document.querySelectorAll('.chart, #plates tr, table.ztlist tr').length > 0",
     )
+    data_date = str(page.evaluate("() => document.querySelector('#fdate')?.value || ''")).strip()
+    normalize_date(data_date)
     metrics = page.evaluate(
         """
-        () => Array.from(document.querySelectorAll('.chart')).map((node) => ({
+        () => Array.from(document.querySelectorAll('.chart')).filter((node) => node.getClientRects().length > 0).map((node) => ({
           name: node.getAttribute('name') || '',
           text: node.innerText.trim(),
         })).filter((item) => item.text)
@@ -541,14 +550,14 @@ def collect_fupan(page: Page) -> tuple[str, int]:
     )
     plates = page.evaluate(
         """
-        () => Array.from(document.querySelectorAll('#plates tr')).map((tr) =>
+        () => Array.from(document.querySelectorAll('#plates tr')).filter((tr) => tr.getClientRects().length > 0).map((tr) =>
           Array.from(tr.children).map((td) => td.innerText.trim()).filter(Boolean)
         ).filter((row) => row.length > 0)
         """
     )
     tables = page.evaluate(
         """
-        () => Array.from(document.querySelectorAll('table.ztlist')).map((table) => ({
+        () => Array.from(document.querySelectorAll('table.ztlist')).filter((table) => table.getClientRects().length > 0).map((table) => ({
           tableId: table.id || '',
           headers: Array.from(table.querySelectorAll('tr:first-child th')).map((th) => th.innerText.trim()),
           rows: Array.from(table.querySelectorAll('tr')).slice(1).map((tr) =>
@@ -558,10 +567,13 @@ def collect_fupan(page: Page) -> tuple[str, int]:
         """
     )
     lines = [
-        f"# 日期复盘 - {today_text()}",
+        f"# 日期复盘 - {data_date}",
         "",
         f"> 来源页面：{url}",
         f"> 生成时间：{now_text()}",
+        f"> 数据日期：{data_date}",
+        f"> 快照日期：{today_text()}",
+        "> 口径说明：源站最新已发布复盘，以数据日期为准，不代表当日实时盘面。",
         f"> 指标数量：{len(metrics)}",
         f"> 板块数量：{len(plates)}",
         f"> 涨停分组数量：{len(tables)}",
@@ -764,23 +776,60 @@ def rebuild_summary(output_root: Path, summary_file_name: str, dashboard_file_na
     return summary_path
 
 
+def rebuild_day_indexes(
+    output_root: Path,
+    target_date: str,
+    *,
+    ai_file: str = DEFAULT_AI_FILE,
+    dashboard_file: str = DEFAULT_DASHBOARD_FILE,
+    summary_file: str = DEFAULT_SUMMARY_FILE,
+) -> tuple[Path, Path, Path]:
+    day_dir = output_root / target_date
+    results = [
+        ExportResult(target, day_dir / TARGET_METADATA[target]["file"], note="已归档数据")
+        for target in TARGET_ORDER
+        if (day_dir / TARGET_METADATA[target]["file"]).is_file()
+        and (day_dir / TARGET_METADATA[target]["file"]).stat().st_size > 0
+    ]
+    if not results:
+        raise SystemExit(f"{target_date} 没有可汇总的数据文件。")
+    ai_path = build_ai_analysis(day_dir, results, ai_file)
+    dashboard_path = build_dashboard(day_dir, results, dashboard_file, ai_path)
+    summary_path = rebuild_summary(output_root, summary_file, dashboard_file)
+    return ai_path, dashboard_path, summary_path
+
+
 def main() -> int:
     args = parse_args()
-    ensure_dependency_scripts()
+    if not args.rebuild_only:
+        today = today_text()
+        if args.target_date > today:
+            raise SystemExit(f"抓取日期不能晚于上海今日 {today}")
+        if args.target_date != today and any(target != "jingjia" for target in args.target_list):
+            raise SystemExit(f"实时模块仅支持当天快照，请使用 --date {today}；历史采集仅支持源站可见竞价。")
+        ensure_dependency_scripts()
     output_root = Path(args.output_root).resolve()
     output_root.mkdir(parents=True, exist_ok=True)
-    results = export_existing_targets(output_root, args.target_date, args.target_list)
-    results.extend(collect_with_playwright(output_root, args.target_date, args.target_list))
-    results.sort(key=lambda item: TARGET_ORDER.index(item.target))
-    if not results:
-        raise SystemExit("没有可执行的抓取目标。")
+    results = []
+    if not args.rebuild_only:
+        results = export_existing_targets(output_root, args.target_date, args.target_list)
+        results.extend(collect_with_playwright(output_root, args.target_date, args.target_list))
+        results.sort(key=lambda item: TARGET_ORDER.index(item.target))
+        if not results:
+            raise SystemExit("没有可执行的抓取目标。")
     day_dir = output_root / args.target_date
-    ai_path = build_ai_analysis(day_dir, results, args.ai_file)
-    dashboard_path = build_dashboard(day_dir, results, args.dashboard_file, ai_path)
-    summary_path = rebuild_summary(output_root, args.summary_file, args.dashboard_file)
     print(f"输出目录：{day_dir}")
     for result in results:
         print(f"[OK] {result.target} -> {result.output_file.name}")
+    if args.skip_index:
+        return 0
+    ai_path, dashboard_path, summary_path = rebuild_day_indexes(
+        output_root,
+        args.target_date,
+        ai_file=args.ai_file,
+        dashboard_file=args.dashboard_file,
+        summary_file=args.summary_file,
+    )
     print(f"导航文件：{dashboard_path}")
     print(f"AI 解析：{ai_path}")
     print(f"汇总文件：{summary_path}")

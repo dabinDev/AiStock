@@ -757,7 +757,6 @@ def build_jinji_markdown(snapshot: JinjiSnapshot) -> str:
     meta = {
         "snapshot_date": snapshot.snapshot_date,
         "data_date": snapshot.data_date,
-        "source_url": snapshot.source_url,
         "stage_count": snapshot.stage_count,
         "entry_count": snapshot.entry_count,
         "result_counts": snapshot.result_counts,

@@ -217,8 +217,11 @@ def spawn_server(port: int) -> subprocess.Popen[str]:
     env = runtime_env()
     env["ASTOCK_SERVER_MODE"] = "1"
     env["KANPAN_PORT"] = str(port)
+    command = [sys.executable]
+    if not getattr(sys, "frozen", False):
+        command.append(str(Path(__file__).resolve()))
     return subprocess.Popen(
-        [sys.executable],
+        command,
         env=env,
         cwd=str(app_root()),
         creationflags=creation_flags(),

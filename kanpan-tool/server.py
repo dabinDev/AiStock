@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 import threading
+import time
 import uuid
 import ctypes
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -16,8 +17,9 @@ from functools import lru_cache
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import parse_qs, urlparse
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -32,7 +34,9 @@ CONFIG_ROOT = APP_ROOT / ".local-config"
 SETTINGS_FILE = CONFIG_ROOT / "terminal-settings.json"
 DEFAULT_PORT = 8765
 DEFAULT_MODEL = "kimi-k2.5"
+SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
 KIMI_BASE_URL = "https://api.moonshot.cn/v1/chat/completions"
+KIMI_MAX_STREAM_SECONDS = 900
 PROMPT_REQUIREMENTS_FILE = ROOT / "解析提示词要求.md"
 PROMPT_SYSTEM_FILES = {
     "open": ROOT / "开盘盘前解析-system-prompt-完整版.md",
@@ -136,7 +140,7 @@ class DATA_BLOB(ctypes.Structure):
 
 
 def now_text() -> str:
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.now(SHANGHAI_TZ).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def sanitize_proxy_env(env: dict[str, str]) -> dict[str, str]:
@@ -170,11 +174,38 @@ def hidden_subprocess_kwargs() -> dict[str, Any]:
 
 def normalize_date(value: str | None) -> str:
     if not value:
-        return datetime.now().strftime("%Y-%m-%d")
+        return datetime.now(SHANGHAI_TZ).strftime("%Y-%m-%d")
+    if not isinstance(value, str):
+        raise ValueError("日期必须使用 YYYY-MM-DD 格式")
     cleaned = value.strip()
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", cleaned):
         raise ValueError(f"非法日期：{value}")
+    try:
+        datetime.strptime(cleaned, "%Y-%m-%d")
+    except ValueError as exc:
+        raise ValueError(f"非法日期：{value}") from exc
     return cleaned
+
+
+def request_targets(payload: dict[str, Any]) -> list[str]:
+    targets = payload.get("targets", TARGET_ORDER)
+    if not isinstance(targets, list) or not targets:
+        raise ValueError("请至少选择一个数据标签")
+    if any(not isinstance(target, str) or target not in TARGETS for target in targets):
+        raise ValueError("存在无法识别的数据标签")
+    return list(dict.fromkeys(targets))
+
+
+def validate_fetch_date(date_text: str, targets: list[str]) -> None:
+    today = normalize_date(None)
+    if date_text > today:
+        raise ValueError(f"抓取日期不能晚于上海今日 {today}")
+    live_targets = [target for target in targets if target != "jingjia"]
+    if date_text != today and live_targets:
+        raise ValueError(
+            f"{format_target_labels(live_targets)}仅支持当天快照，请将交易日期切换至 {today}。"
+            "历史归档仍可解析；历史竞价仅支持源站当前可见日期。"
+        )
 
 
 def latest_dates(limit: int = 30) -> list[str]:
@@ -453,10 +484,16 @@ def collect_target_contents(date_text: str, targets: list[str]) -> list[dict[str
     return results
 
 
-def export_command(date_text: str, target: str) -> list[str]:
-    if getattr(sys, "frozen", False):
-        return [sys.executable, "--output-root", str(DATA_ROOT), "--date", date_text, "--targets", target]
-    return [sys.executable, str(EXPORT_SCRIPT), "--output-root", str(DATA_ROOT), "--date", date_text, "--targets", target]
+def export_command(date_text: str, target: str | None = None) -> list[str]:
+    command = [sys.executable]
+    if not getattr(sys, "frozen", False):
+        command.append(str(EXPORT_SCRIPT))
+    command.extend(["--output-root", str(DATA_ROOT), "--date", date_text])
+    if target is None:
+        command.append("--rebuild-only")
+    else:
+        command.extend(["--targets", target, "--skip-index"])
+    return command
 
 
 PROMPT_PRESETS: dict[str, dict[str, Any]] = {
@@ -578,7 +615,7 @@ def prompt_time_title(date_text: str, preset_key: str) -> str:
     if preset_key == "open":
         return f"{month_day} 09:25"
     if preset_key == "intraday":
-        return datetime.now().strftime(f"{month_day} %H:%M")
+        return datetime.now(SHANGHAI_TZ).strftime(f"{month_day} %H:%M")
     if preset_key == "close":
         return f"{month_day} 15:00"
     return month_day
@@ -682,7 +719,7 @@ def build_external_prompt(
         ]
     )
     if preset_key == "intraday":
-        parts.append(f"当前时间：{datetime.now().strftime('%H:%M')}")
+        parts.append(f"当前时间：{datetime.now(SHANGHAI_TZ).strftime('%H:%M')}")
     parts.append("")
 
     total_chars = 0
@@ -782,15 +819,20 @@ def compact_prompt_for_kimi(prompt: str, max_chars: int = 24000, section_limit: 
 
     intro, *sections = text.split(marker)
     intro = intro.strip()
-    remaining_budget = max_chars - len(intro) - 2
+    notice_budget = len(notice_template.format(original=len(text), current=max_chars))
+    content_budget = max(0, max_chars - notice_budget)
+    intro = intro[:max(0, content_budget - len(sections) * 120)].rstrip()
+    remaining_budget = content_budget - len(intro) - 2
     kept_sections: list[str] = []
 
     for index, raw_section in enumerate(sections):
         if remaining_budget <= 0:
             break
         section_text = f"{marker}{raw_section.strip()}"
-        reserve_for_tail = max(0, len(sections) - index - 1) * 120
-        allowed = min(section_limit, max(240, remaining_budget - reserve_for_tail))
+        remaining_sections = len(sections) - index
+        allowed = min(section_limit, max(0, (remaining_budget - 2 * (remaining_sections - 1)) // remaining_sections))
+        if allowed <= 0:
+            break
         clipped = section_text[:allowed].rstrip()
         kept_sections.append(clipped)
         remaining_budget -= len(clipped) + 2
@@ -805,7 +847,65 @@ def compact_prompt_for_kimi(prompt: str, max_chars: int = 24000, section_limit: 
     return compacted + notice
 
 
-def call_kimi(api_key: str, model: str, prompt: str) -> str:
+def read_kimi_response(response: requests.Response, on_progress: Callable[[str], None] | None = None) -> str:
+    if "text/event-stream" not in response.headers.get("Content-Type", "").lower():
+        data = response.json()
+        content = data["choices"][0]["message"].get("content")
+        if not isinstance(content, str) or not content.strip():
+            raise RuntimeError("Kimi 未返回分析正文。")
+        if data["choices"][0].get("finish_reason") not in {None, "stop"}:
+            raise RuntimeError("Kimi 分析未完整生成，请检查模型输出限制。")
+        return content
+
+    response.encoding = "utf-8"
+    parts: list[str] = []
+    completed = False
+    phase = ""
+    started_at = last_progress_at = time.monotonic()
+    for line in response.iter_lines(decode_unicode=True):
+        now = time.monotonic()
+        if now - started_at > KIMI_MAX_STREAM_SECONDS:
+            raise RuntimeError(f"Kimi 分析超过 {KIMI_MAX_STREAM_SECONDS} 秒，已停止本次请求，请稍后手动重试。")
+        if not line or not line.startswith("data:"):
+            continue
+        event_text = line[5:].strip()
+        if event_text == "[DONE]":
+            completed = True
+            break
+        event = json.loads(event_text)
+        if event.get("error"):
+            raise RuntimeError(f"Kimi 返回错误：{event['error']}")
+        choices = event.get("choices") or []
+        if not choices:
+            continue
+        choice = choices[0]
+        delta = choice.get("delta") or {}
+        content = delta.get("content")
+        if isinstance(content, str) and content:
+            parts.append(content)
+            current_phase = "正在生成分析正文"
+        elif delta.get("reasoning_content"):
+            current_phase = "模型正在思考"
+        else:
+            current_phase = phase
+        if current_phase and (current_phase != phase or now - last_progress_at >= 15):
+            if on_progress:
+                on_progress(current_phase)
+            phase, last_progress_at = current_phase, now
+        finish_reason = choice.get("finish_reason")
+        if finish_reason:
+            if finish_reason != "stop":
+                raise RuntimeError(f"Kimi 分析未完整生成（finish_reason={finish_reason}），请检查模型输出限制。")
+            completed = True
+    if not completed:
+        raise RuntimeError("Kimi 连接提前结束，分析未完整接收，请手动重试。")
+    content = "".join(parts)
+    if not content.strip():
+        raise RuntimeError("Kimi 未返回分析正文。")
+    return content
+
+
+def call_kimi(api_key: str, model: str, prompt: str, *, on_progress: Callable[[str], None] | None = None) -> str:
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -824,44 +924,47 @@ def call_kimi(api_key: str, model: str, prompt: str) -> str:
             },
         ],
         "temperature": 1,
+        "stream": True,
     }
     prompt_candidates = [prompt]
     compact_prompt = compact_prompt_for_kimi(prompt)
     if compact_prompt != prompt:
         prompt_candidates.append(compact_prompt)
-    last_error: Exception | None = None
     for index, candidate_prompt in enumerate(prompt_candidates):
         payload = dict(base_payload)
         payload["messages"] = [*base_payload["messages"], {"role": "user", "content": candidate_prompt}]
-        for attempt in range(1, 3):
-            try:
-                response = requests.post(KIMI_BASE_URL, headers=headers, json=payload, timeout=300)
-                response.raise_for_status()
-                data = response.json()
-                return data["choices"][0]["message"]["content"]
-            except requests.HTTPError as exc:  
-                response_text = ""
-                if exc.response is not None:
-                    response_text = exc.response.text.strip()
-                detail = f"HTTP {exc.response.status_code}: {response_text}" if exc.response is not None and response_text else str(exc)
-                detail = f"{detail} (prompt_length={len(prompt)}, api_prompt_length={len(candidate_prompt)})"
-                last_error = RuntimeError(detail)
-                is_last_candidate = index == len(prompt_candidates) - 1
-                lower_text = response_text.lower()
-                prompt_too_long = any(
-                    keyword in lower_text
-                    for keyword in ("context", "token", "too long", "maximum", "max length", "prompt")
-                )
-                if prompt_too_long and not is_last_candidate:
-                    break
-                if attempt == 2:
-                    break
-            except Exception as exc:  
-                last_error = exc
-                if attempt == 2:
-                    break
-    assert last_error is not None
-    raise last_error
+        response = None
+        try:
+            if on_progress:
+                on_progress(f"Kimi 发送长度：{len(candidate_prompt)} 字符，等待流式响应")
+            response = requests.post(KIMI_BASE_URL, headers=headers, json=payload, stream=True, timeout=(10, 90))
+            response.raise_for_status()
+            return read_kimi_response(response, on_progress)
+        except requests.HTTPError as exc:
+            failed_response = exc.response if exc.response is not None else response
+            response_text = failed_response.text.strip() if failed_response is not None else ""
+            status = failed_response.status_code if failed_response is not None else "未知"
+            prompt_too_long = status in {400, 413} and any(
+                keyword in response_text.lower()
+                for keyword in ("context_length_exceeded", "maximum context length", "context window", "too many tokens", "token limit", "prompt is too long", "input is too long", "上下文长度")
+            )
+            if prompt_too_long and index < len(prompt_candidates) - 1:
+                if on_progress:
+                    on_progress("输入超过模型上下文限制，将压缩所选数据模块后重新发送")
+                continue
+            detail = (response_text or str(exc)).replace(api_key, "[已隐藏]")[:2000]
+            raise RuntimeError(f"Kimi HTTP {status}: {detail} (api_prompt_length={len(candidate_prompt)})") from exc
+        except requests.Timeout as exc:
+            raise RuntimeError("等待 Kimi 响应超时（连接 10 秒，连续无数据 90 秒），已停止本次请求；请手动重试。") from exc
+        except requests.RequestException as exc:
+            detail = str(exc).replace(api_key, "[已隐藏]")[:1000]
+            raise RuntimeError(f"Kimi 连接中断，已停止本次请求，请手动重试：{detail}") from exc
+        except Exception as exc:
+            raise RuntimeError(str(exc).replace(api_key, "[已隐藏]")) from exc
+        finally:
+            if response is not None:
+                response.close()
+    raise RuntimeError("Kimi 未返回分析结果。")
 
 
 def build_prompt_payload(
@@ -975,125 +1078,75 @@ def start_fetch_job(date_text: str, targets: list[str]) -> str:
     job_id = create_job("fetch", f"{date_text} 抓取 {format_target_labels(targets)}", {"date": date_text, "targets": targets})
 
     def worker() -> None:
-        env = subprocess_env()
-        try:
-            if len(targets) > 1:
-                def run_single_target(target: str) -> tuple[str, int]:
-                    meta = TARGETS[target]
-                    local_env = subprocess_env()
-                    set_job_target_status(job_id, target, "running")
-                    append_job_log(job_id, f"[{meta['label']}] 启动抓取")
-                    args = export_command(date_text, target)
-                    if getattr(sys, "frozen", False):
-                        local_env["ASTOCK_EMBEDDED_SCRIPT"] = "market_overview"
-                    else:
-                        local_env.pop("ASTOCK_EMBEDDED_SCRIPT", None)
-                    process = subprocess.Popen(
-                        args,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT,
-                        text=True,
-                        encoding="utf-8",
-                        errors="replace",
-                        env=local_env,
-                        **hidden_subprocess_kwargs(),
-                    )
-                    assert process.stdout is not None
-                    for line in process.stdout:
-                        text = line.strip()
-                        if text:
-                            append_job_log(job_id, f"[{meta['label']}] {text}")
-                    return target, process.wait()
+        failures: list[str] = []
 
-                failures: list[str] = []
-                max_workers = max(1, min(4, len(targets)))
-                with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                    future_map = {executor.submit(run_single_target, target): target for target in targets}
-                    for future in as_completed(future_map):
-                        target = future_map[future]
-                        meta = TARGETS[target]
-                        try:
-                            _, return_code = future.result()
-                        except Exception as exc:
-                            set_job_target_status(job_id, target, "failed")
-                            failures.append(f"{meta['label']}: {exc}")
-                            continue
-
-                        if return_code != 0:
-                            set_job_target_status(job_id, target, "failed")
-                            failures.append(f"{meta['label']} 抓取失败，退出码 {return_code}")
-                        else:
-                            set_job_target_status(job_id, target, "completed")
-
-                target_data = collect_target_contents(date_text, targets)
-                if failures:
-                    finish_job(
-                        job_id,
-                        result={
-                            "date": date_text,
-                            "targets": targets,
-                            "target_data": target_data,
-                            "fetched_count": sum(1 for item in target_data if item["exists"] == "true"),
-                        },
-                        error=" ; ".join(failures),
-                    )
-                    return
-
-                finish_job(
-                    job_id,
-                    result={
-                        "date": date_text,
-                        "targets": targets,
-                        "target_data": target_data,
-                        "fetched_count": sum(1 for item in target_data if item["exists"] == "true"),
-                    },
-                )
-                return
-
-            for index, target in enumerate(targets):
-                meta = TARGETS[target]
+        def run_export(target: str | None = None) -> None:
+            label = target_label(target) if target else "汇总索引"
+            env = subprocess_env()
+            if target:
                 set_job_target_status(job_id, target, "running")
-                append_job_log(job_id, f"[{meta['label']}] 启动抓取")
-                args = export_command(date_text, target)
-                if getattr(sys, "frozen", False):
-                    env["ASTOCK_EMBEDDED_SCRIPT"] = "market_overview"
-                else:
-                    env.pop("ASTOCK_EMBEDDED_SCRIPT", None)
-                process = subprocess.Popen(
-                    args,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True,
-                    encoding="utf-8",
-                    errors="replace",
-                    env=env,
-                    **hidden_subprocess_kwargs(),
-                )
-                assert process.stdout is not None
-                for line in process.stdout:
-                    text = line.strip()
-                    if text:
-                        append_job_log(job_id, f"[{meta['label']}] {text}")
-                return_code = process.wait()
-                if return_code != 0:
-                    set_job_target_status(job_id, target, "failed")
-                    for pending in targets[index + 1:]:
-                        set_job_target_status(job_id, pending, "skipped")
-                    raise RuntimeError(f"{meta['label']} 抓取失败，退出码 {return_code}")
-                set_job_target_status(job_id, target, "completed")
-
-            target_data = collect_target_contents(date_text, targets)
-            finish_job(
-                job_id,
-                result={
-                    "date": date_text,
-                    "targets": targets,
-                    "target_data": target_data,
-                    "fetched_count": sum(1 for item in target_data if item["exists"] == "true"),
-                },
+                append_job_log(job_id, f"[{label}] 启动抓取")
+            if getattr(sys, "frozen", False):
+                env["ASTOCK_EMBEDDED_SCRIPT"] = "market_overview"
+            else:
+                env.pop("ASTOCK_EMBEDDED_SCRIPT", None)
+            process = subprocess.Popen(
+                export_command(date_text, target),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                env=env,
+                **hidden_subprocess_kwargs(),
             )
+            assert process.stdout is not None
+            last_line = ""
+            for line in process.stdout:
+                text = line.strip()
+                if text:
+                    last_line = text
+                    append_job_log(job_id, f"[{label}] {text}")
+            return_code = process.wait()
+            if return_code != 0:
+                detail = sanitize_public_text(last_line)
+                raise RuntimeError(f"{label}执行失败，退出码 {return_code}" + (f"：{detail}" if detail else ""))
+            if target:
+                output = DATA_ROOT / date_text / TARGETS[target]["file"]
+                if not output.is_file() or output.stat().st_size == 0:
+                    raise RuntimeError(f"{label}未生成有效数据文件")
+
+        try:
+            with ThreadPoolExecutor(max_workers=max(1, min(4, len(targets)))) as executor:
+                futures = {executor.submit(run_export, target): target for target in targets}
+                for future in as_completed(futures):
+                    target = futures[future]
+                    try:
+                        future.result()
+                    except Exception as exc:
+                        set_job_target_status(job_id, target, "failed")
+                        failures.append(str(exc))
+                    else:
+                        set_job_target_status(job_id, target, "completed")
+            if any(status == "completed" for status in snapshot_job(job_id)["target_statuses"].values()):
+                run_export()
         except Exception as exc:
-            finish_job(job_id, error=str(exc))
+            failures.append(str(exc))
+
+        statuses = snapshot_job(job_id)["target_statuses"]
+        target_data = collect_target_contents(date_text, targets)
+        for item in target_data:
+            item["fetch_status"] = statuses.get(item["target"], "failed")
+        finish_job(
+            job_id,
+            result={
+                "date": date_text,
+                "targets": targets,
+                "target_data": target_data,
+                "fetched_count": sum(status == "completed" for status in statuses.values()),
+            },
+            error="；".join(failures) or None,
+        )
 
     threading.Thread(target=worker, daemon=True).start()
     return job_id
@@ -1137,12 +1190,11 @@ def start_analyze_job(
                 per_target_limit=None,
             )
             append_job_log(job_id, f"提示词长度：{len(prompt)} 字符")
-            append_job_log(job_id, f"Kimi 发送长度：{len(prompt)} 字符")
-            append_job_log(job_id, "调用 Kimi API")
+            append_job_log(job_id, "调用 Kimi API（流式接收）")
             for target in targets:
                 set_job_target_status(job_id, target, "analyzing")
 
-            analysis = call_kimi(resolved_key, resolved_model, prompt)
+            analysis = call_kimi(resolved_key, resolved_model, prompt, on_progress=lambda message: append_job_log(job_id, message))
             slug = "all" if targets == TARGET_ORDER else "-".join(targets)
             file_name = save_analysis(date_text, slug, analysis)
             append_job_log(job_id, f"解析结果已保存：{file_name}")
@@ -1242,12 +1294,15 @@ class Handler(BaseHTTPRequestHandler):
         params = parse_qs(query)
         dates = latest_dates()
         requested = params.get("date", [""])[0]
-        current = normalize_date(requested or (dates[0] if dates else None))
+        try:
+            current = normalize_date(requested)
+        except ValueError as exc:
+            return self._send_json({"error": str(exc)}, status=400)
         settings = load_settings()
         self._send_json(
             {
                 "currentDate": current,
-                "dates": dates or [current],
+                "dates": sorted(set([current, *dates]), reverse=True),
                 "availableTargets": [item["target"] for item in available_files(current) if item["target"] in TARGETS],
                 "generatedAt": now_text(),
                 "settings": {
@@ -1291,10 +1346,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             payload = self._read_json()
             date_text = normalize_date(payload.get("date"))
-            targets = payload.get("targets") or TARGET_ORDER
-            for target in targets:
-                if target not in TARGETS:
-                    raise ValueError("存在无法识别的提示词标签")
+            targets = request_targets(payload)
             data = build_prompt_payload(
                 date_text,
                 targets,
@@ -1321,10 +1373,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             payload = self._read_json()
             date_text = normalize_date(payload.get("date"))
-            targets = payload.get("targets") or TARGET_ORDER
-            for target in targets:
-                if target not in TARGETS:
-                    raise ValueError("存在无法识别的抓取标签")
+            targets = request_targets(payload)
+            validate_fetch_date(date_text, targets)
             job_id = start_fetch_job(date_text, targets)
             self._send_json({"job_id": job_id})
         except Exception as exc:
@@ -1334,10 +1384,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             payload = self._read_json()
             date_text = normalize_date(payload.get("date"))
-            targets = payload.get("targets") or TARGET_ORDER
-            for target in targets:
-                if target not in TARGETS:
-                    raise ValueError("存在无法识别的解析标签")
+            targets = request_targets(payload)
             settings = load_settings()
             resolved_key = resolve_kimi_key(payload.get("api_key"), settings["kimi_key"])
             if not resolved_key:

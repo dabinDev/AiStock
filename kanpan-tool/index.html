@@ -682,6 +682,10 @@
       color: var(--muted);
       font-size: 11px;
       border: 1px solid var(--line);
+      max-width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
     .status-text.ok {
       color: #83e7bc;
@@ -856,6 +860,7 @@
     }
     .dataset-meta.ok { color: #85efbf; }
     .dataset-meta.pending { color: #ffd590; }
+    .dataset-meta.failed { color: #ffab9a; }
     .dataset-body {
       color: var(--muted);
       line-height: 1.42;
@@ -1563,8 +1568,9 @@
     function setStatus(text, ok = false, running = false) {
       const el = document.getElementById("statusText");
       el.textContent = text;
+      el.title = text;
       el.className = "status-text" + (running ? " running" : ok ? " ok" : "");
-      const statusText = running ? "运行中" : ok ? "完成" : text;
+      const statusText = running ? "运行中" : ok ? "完成" : "待处理";
       ["metricStatus", "metricStatusLegacy"].forEach((id) => {
         const node = document.getElementById(id);
         if (node) node.textContent = statusText;
@@ -1814,8 +1820,8 @@
         .trim()
         .replace(/^\|/, "")
         .replace(/\|$/, "")
-        .split("|")
-        .map((cell) => cell.trim());
+        .split(/(?<!\\)\|/)
+        .map((cell) => cell.replace(/\\\|/g, "|").trim());
     }
 
     function isTableDivider(line) {
@@ -2485,11 +2491,12 @@
       }
       root.innerHTML = items.map((item) => {
         const exists = item.exists === "true";
+        const failed = item.fetch_status === "failed";
         const shortLabel = item.target ? targetLabel(item.target) : item.label;
         const fullLabel = item.target ? targetFullLabel(item.target) : item.label;
-        const body = exists ? "已抓取，可直接解析" : "未抓取";
-        const meta = exists ? "已就绪" : "待抓取";
-        const metaClass = exists ? "dataset-meta ok" : "dataset-meta pending";
+        const body = failed ? (exists ? "本次抓取失败，已保留原数据，请重新抓取" : "本次抓取失败，请查看执行日志") : exists ? "已抓取，可直接解析" : "未抓取";
+        const meta = failed ? "本次抓取失败" : exists ? "已就绪" : "待抓取";
+        const metaClass = failed ? "dataset-meta failed" : exists ? "dataset-meta ok" : "dataset-meta pending";
         return `
           <section class="dataset">
             <div class="dataset-head">
@@ -2605,12 +2612,25 @@
     }
 
     async function refreshState(dateOverride = "") {
-      const qs = dateOverride ? "?date=" + encodeURIComponent(dateOverride) : "";
+      const requestedDate = dateOverride || document.getElementById("tradeDate").value.trim();
+      const qs = requestedDate ? "?date=" + encodeURIComponent(requestedDate) : "";
       const res = await fetch("/api/state" + qs);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "加载状态失败");
+      const dateChanged = state.currentDate && state.currentDate !== data.currentDate;
       state = data;
       document.getElementById("tradeDate").value = state.currentDate;
+      if (dateChanged && !activeJobId) {
+        setPromptContent("");
+        setAnalysisContent("");
+        lastAnalyzeTargets = [];
+        lastPromptPreset = "default";
+        renderTargetData(orderedTargetList(Array.from(selectedTargets)).map((target) => ({
+          target,
+          exists: state.availableTargets.includes(target) ? "true" : "false"
+        })));
+        renderProgress();
+      }
       if (state.settings) applySettings(state.settings);
       if (!activeJobId) setStatus("状态已刷新", true);
       updateMetrics();
@@ -2658,6 +2678,10 @@
         const data = await postJson("/api/fetch", { date, targets });
         updateLoading("抓取任务已提交，等待服务返回日志...\n" + targetText);
         const finalData = await followJob(data.job_id, date);
+        if (finalData && finalData.status === "failed") {
+          setPromptContent("");
+          setAnalysisContent("## 数据抓取失败\n\n" + (finalData.error || "请查看执行日志"));
+        }
         if (finalData && finalData.status === "completed" && options.generatePrompt !== false) {
           try {
             await generatePromptForTargets(date, targets, {
@@ -2678,7 +2702,9 @@
         return finalData;
       } catch (err) {
         hideLoading();
-        setStatus(normalizeErrorMessage(err));
+        const message = normalizeErrorMessage(err);
+        setStatus(message);
+        setAnalysisContent("## 数据抓取失败\n\n" + message);
         return null;
       }
     }
@@ -2875,6 +2901,9 @@
         .replaceAll(">", "&gt;");
     }
 
+    document.getElementById("tradeDate").addEventListener("change", () => {
+      refreshState().catch((err) => setStatus(normalizeErrorMessage(err)));
+    });
     applyStaticCopy();
     rotateSidebarQuote();
     renderTags();
