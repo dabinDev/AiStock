@@ -7,6 +7,12 @@ __pycache__/
 .obsidian/workspace.json
 data/.obsidian/workspace.json
 
+# Local runtime settings and generated artifacts
+/.local-config/
+/build/
+/dist/
+/output/
+
 # Common OS files
 .DS_Store
 Thumbs.db

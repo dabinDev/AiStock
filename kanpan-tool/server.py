@@ -10,6 +10,7 @@ import threading
 import time
 import uuid
 import ctypes
+import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from ctypes import wintypes
 from datetime import datetime
@@ -36,7 +37,9 @@ DEFAULT_PORT = 8765
 DEFAULT_MODEL = "kimi-k2.5"
 SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
 KIMI_BASE_URL = "https://api.moonshot.cn/v1/chat/completions"
+KIMI_MODELS_URL = "https://api.moonshot.cn/v1/models"
 KIMI_MAX_STREAM_SECONDS = 900
+KIMI_MODEL_TEST_SECONDS = 60
 PROMPT_REQUIREMENTS_FILE = ROOT / "解析提示词要求.md"
 PROMPT_SYSTEM_FILES = {
     "open": ROOT / "开盘盘前解析-system-prompt-完整版.md",
@@ -93,6 +96,7 @@ TARGET_ORDER = list(TARGETS.keys())
 
 JOBS: dict[str, dict[str, Any]] = {}
 JOB_LOCK = threading.Lock()
+SETTINGS_LOCK = threading.RLock()
 
 SOURCE_PATTERNS = [
     re.compile(r"^>\s*来源", re.IGNORECASE),
@@ -410,34 +414,41 @@ def unprotect_secret(value: str) -> str:
 
 
 def load_settings() -> dict[str, str]:
-    if not SETTINGS_FILE.exists():
-        return {"kimi_key": "", "kimi_model": DEFAULT_MODEL}
-    try:
-        raw = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return {"kimi_key": "", "kimi_model": DEFAULT_MODEL}
+    with SETTINGS_LOCK:
+        if not SETTINGS_FILE.exists():
+            return {"kimi_key": "", "kimi_model": DEFAULT_MODEL}
+        try:
+            raw = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return {"kimi_key": "", "kimi_model": DEFAULT_MODEL}
 
-    encrypted_key = str(raw.get("kimi_key", "") or "")
-    return {
-        "kimi_key": unprotect_secret(encrypted_key) if encrypted_key else "",
-        "kimi_model": str(raw.get("kimi_model", DEFAULT_MODEL) or DEFAULT_MODEL),
-    }
+        encrypted_key = str(raw.get("kimi_key", "") or "")
+        return {
+            "kimi_key": unprotect_secret(encrypted_key) if encrypted_key else "",
+            "kimi_model": str(raw.get("kimi_model", DEFAULT_MODEL) or DEFAULT_MODEL),
+        }
 
 
 def save_settings(kimi_key: str, kimi_model: str, keep_existing_key: bool = False) -> dict[str, str]:
-    CONFIG_ROOT.mkdir(parents=True, exist_ok=True)
-    existing = load_settings() if SETTINGS_FILE.exists() else {"kimi_key": "", "kimi_model": DEFAULT_MODEL}
-    effective_key = existing["kimi_key"] if keep_existing_key and not kimi_key.strip() else kimi_key.strip()
-    payload = {
-        "kimi_key": protect_secret(effective_key) if effective_key else "",
-        "kimi_model": kimi_model.strip() or DEFAULT_MODEL,
-        "updated_at": now_text(),
-    }
-    SETTINGS_FILE.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
-    return {
-        "kimi_key": effective_key,
-        "kimi_model": payload["kimi_model"],
-    }
+    with SETTINGS_LOCK:
+        CONFIG_ROOT.mkdir(parents=True, exist_ok=True)
+        existing = load_settings()
+        effective_key = existing["kimi_key"] if keep_existing_key and not kimi_key.strip() else kimi_key.strip()
+        payload = {
+            "kimi_key": protect_secret(effective_key) if effective_key else "",
+            "kimi_model": kimi_model.strip() or DEFAULT_MODEL,
+            "updated_at": now_text(),
+        }
+        temporary = SETTINGS_FILE.with_name(f"{SETTINGS_FILE.name}.{uuid.uuid4().hex}.tmp")
+        try:
+            temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
+            os.replace(temporary, SETTINGS_FILE)
+        finally:
+            temporary.unlink(missing_ok=True)
+        return {
+            "kimi_key": effective_key,
+            "kimi_model": payload["kimi_model"],
+        }
 
 
 def masked_key(value: str) -> str:
@@ -455,8 +466,74 @@ def resolve_kimi_key(api_key: str | None, stored_key: str | None = None) -> str:
     )
 
 
-def collect_target_contents(date_text: str, targets: list[str]) -> list[dict[str, str]]:
-    results: list[dict[str, str]] = []
+def data_quality(content: str, date_text: str, target: str) -> dict[str, Any]:
+    """采集时间只描述本机快照，不冒充源站行情截止时间。"""
+    def field(pattern: str) -> str:
+        match = re.search(pattern, content, re.MULTILINE)
+        return match.group(1).strip() if match else ""
+
+    data_date = field(r"^>\s*数据日期[：:]\s*(\d{4}-\d{2}-\d{2})")
+    if not data_date:
+        data_date = field(r"^# .*?(\d{4}-\d{2}-\d{2})\s*$")
+    capture_field = re.search(r"^>[ \t]*(?:生成|采集|抓取)时间[：:][ \t]*([^\r\n]*)", content, re.MULTILINE)
+    captured_at = capture_field.group(1).strip() if capture_field else ""
+    now = datetime.strptime(now_text(), "%Y-%m-%d %H:%M:%S")
+    try:
+        captured = datetime.strptime(captured_at, "%Y-%m-%d %H:%M:%S") if captured_at else None
+    except ValueError:
+        captured = None
+    count_text = field(r"^>\s*(?:股票数量|个股条数|本次导出条数|指数数量|涨停直播条数|竞价异动条数)[：:]\s*(\d+)")
+    lines = content.splitlines()
+    meaningful = False
+    for index, line in enumerate(lines):
+        text = line.strip()
+        if not text or text.startswith(("#", ">", "<!--")):
+            continue
+        if text.startswith("|"):
+            if index + 1 < len(lines) and re.fullmatch(r"[\s|:\-]+", lines[index + 1]):
+                continue  # 表头不是一条行情。
+            if not text.strip("| :-\t"):
+                continue
+        elif re.fullmatch(r"[-*_]+", text):
+            continue
+        meaningful = True
+        break
+    quality, message, usable = "ready", "数据可用", True
+    if not meaningful:
+        quality, message, usable = "empty", "空数据或无有效正文，请重新抓取", False
+    elif data_date and data_date != date_text:
+        quality, message, usable = "wrong_date", f"数据日期为 {data_date}，与当前交易日不符", False
+    elif capture_field and (captured is None or (captured - now).total_seconds() > 60):
+        quality, message, usable = "invalid_time", "采集时间无效或晚于本机时间，请核对资料", False
+    elif not captured_at or not data_date:
+        quality, message = "unknown", "旧版资料时间信息不完整，无法校验时效"
+    else:
+        if captured.date().isoformat() != date_text:
+            # 补抓历史竞价允许晚于数据日期采集，但不能早于该交易日。
+            if captured.date().isoformat() < date_text:
+                quality, message, usable = "wrong_date", "采集日期早于数据日期", False
+        if usable and date_text == now.date().isoformat() and target not in {"jingjia", "jjyd"} and now.weekday() < 5:
+            session_start = now.replace(hour=9, minute=30, second=0)
+            cutoff = min(now, now.replace(hour=15, minute=0, second=0))
+            if now.replace(hour=11, minute=30, second=0) <= now < now.replace(hour=13, minute=0, second=0):
+                cutoff = now.replace(hour=11, minute=30, second=0)
+            if now >= session_start and (cutoff - captured).total_seconds() > 15 * 60:
+                quality, message, usable = "stale", "动态数据超过 15 分钟，请更新后分析", False
+    return {
+        "data_date": data_date, "captured_at": captured_at,
+        "row_count": int(count_text) if count_text else None,
+        "quality": quality, "quality_message": message, "usable": usable,
+        "sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+    }
+
+
+def collect_target_contents(date_text: str, targets: list[str]) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
+    with JOB_LOCK:
+        fetch_statuses = {}
+        for job in JOBS.values():
+            if job["type"] == "fetch" and job["payload"].get("date") == date_text:
+                fetch_statuses.update(job.get("target_statuses", {}))
     for target in targets:
         meta = TARGETS[target]
         path = DATA_ROOT / date_text / meta["file"]
@@ -468,20 +545,61 @@ def collect_target_contents(date_text: str, targets: list[str]) -> list[dict[str
                     "file": meta["file"],
                     "content": "",
                     "exists": "false",
+                    "quality": "missing", "quality_message": "尚未抓取成功",
+                    "usable": False, "data_date": "", "captured_at": "", "row_count": None,
                 }
             )
             continue
-        content = sanitize_text(path.read_text(encoding="utf-8-sig"))
-        results.append(
-            {
+        try:
+            content = sanitize_text(path.read_text(encoding="utf-8-sig"))
+        except (OSError, UnicodeError):
+            results.append({
+                "target": target, "label": meta["label"], "file": meta["file"],
+                "content": "", "exists": "true", "usable": False,
+                "quality": "read_error", "quality_message": "资料读取失败，请检查文件或重新抓取",
+                "data_date": "", "captured_at": "", "row_count": None,
+            })
+            continue
+        item = {
                 "target": target,
                 "label": meta["label"],
                 "file": meta["file"],
                 "content": content,
                 "exists": "true",
+                **data_quality(content, date_text, target),
             }
-        )
+        if fetch_statuses.get(target) == "failed":
+            item.update(quality="failed", quality_message="本次抓取失败，旧数据已保留，请重新抓取", usable=False, fetch_status="failed")
+        elif fetch_statuses.get(target) in {"running", "pending"}:
+            item.update(quality="updating", quality_message="正在更新，请等待抓取完成", usable=False)
+        results.append(item)
     return results
+
+
+def validate_target_data(items: list[dict[str, Any]]) -> None:
+    problems = [f"{item['label']}：{item['quality_message']}" for item in items if not item["usable"]]
+    if problems:
+        raise RuntimeError("资料尚未抓取成功或不可用；" + "；".join(problems))
+
+
+def analysis_context(date_text: str, preset: str, items: list[dict[str, Any]]) -> dict[str, str]:
+    generated = now_text()
+    captures = sorted(item["captured_at"] for item in items if item.get("captured_at"))
+    month_day = date_text[5:]
+    if preset == "open":
+        title_time = f"{month_day} 09:25"
+    elif preset == "close":
+        title_time = f"{month_day} 15:00"
+    elif captures and captures[-1][:10] == date_text:
+        title_time = f"{month_day} {captures[-1][11:16]}"
+    else:
+        title_time = f"{month_day} 时间未知"
+    return {
+        "title_time": title_time, "generated_at": generated,
+        "capture_start": captures[0] if captures else "",
+        "capture_end": captures[-1] if captures else "",
+        "time_note": "采集时间为本机获取资料的时间，源站行情截止时间未统一提供。",
+    }
 
 
 def export_command(date_text: str, target: str | None = None) -> list[str]:
@@ -605,7 +723,9 @@ def prompt_system_text(preset_key: str) -> str:
     return read_prompt_template(str(path))
 
 
-def prompt_time_title(date_text: str, preset_key: str) -> str:
+def prompt_time_title(date_text: str, preset_key: str, context: dict[str, str] | None = None) -> str:
+    if context:
+        return context["title_time"]
     match = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})", date_text.strip())
     if match:
         month_day = f"{match.group(2)}-{match.group(3)}"
@@ -690,12 +810,14 @@ def build_external_prompt(
     preset_key: str,
     max_chars: int | None = 80000,
     per_target_limit: int | None = 15000,
+    target_data: list[dict[str, Any]] | None = None,
+    context: dict[str, str] | None = None,
 ) -> str:
     system_text = prompt_system_text(preset_key)
     if not system_text:
         return ""
 
-    title_time = prompt_time_title(date_text, preset_key)
+    title_time = prompt_time_title(date_text, preset_key, context)
     requirement_lines = prompt_requirements_summary(preset_key, title_time, targets)
     parts = [
         "【场景系统提示词】",
@@ -719,13 +841,20 @@ def build_external_prompt(
         ]
     )
     if preset_key == "intraday":
-        parts.append(f"当前时间：{datetime.now(SHANGHAI_TZ).strftime('%H:%M')}")
+        parts.append(f"当前时间：{title_time.split(' ', 1)[-1]}")
+    if context:
+        parts.extend([
+            f"生成时间：{context['generated_at']}",
+            f"资料采集区间：{context['capture_start'] or '未知'} 至 {context['capture_end'] or '未知'}",
+            context["time_note"],
+            "采集时间不代表行情截止时间；时间未知时不得补写当前时间。",
+        ])
     parts.append("")
 
     total_chars = 0
     for target in targets:
         meta = TARGETS[target]
-        content = sanitize_text(read_file(date_text, meta["file"]))
+        content = next(item["content"] for item in target_data if item["target"] == target) if target_data is not None else sanitize_text(read_file(date_text, meta["file"]))
         clipped = content
         if max_chars is not None:
             budget = max_chars - total_chars
@@ -752,6 +881,8 @@ def build_prompt(
     preset: str | None = None,
     max_chars: int | None = 80000,
     per_target_limit: int | None = 15000,
+    target_data: list[dict[str, Any]] | None = None,
+    context: dict[str, str] | None = None,
 ) -> str:
     if prompt_override and prompt_override.strip():
         return prompt_override.strip()
@@ -764,6 +895,8 @@ def build_prompt(
             preset_key=preset_key,
             max_chars=max_chars,
             per_target_limit=per_target_limit,
+            target_data=target_data,
+            context=context,
         )
         if external_prompt:
             return external_prompt
@@ -784,7 +917,7 @@ def build_prompt(
     total_chars = 0
     for target in targets:
         meta = TARGETS[target]
-        content = sanitize_text(read_file(date_text, meta["file"]))
+        content = next(item["content"] for item in target_data if item["target"] == target) if target_data is not None else sanitize_text(read_file(date_text, meta["file"]))
         clipped = content
         if max_chars is not None:
             budget = max_chars - total_chars
@@ -847,7 +980,44 @@ def compact_prompt_for_kimi(prompt: str, max_chars: int = 24000, section_limit: 
     return compacted + notice
 
 
-def read_kimi_response(response: requests.Response, on_progress: Callable[[str], None] | None = None) -> str:
+def kimi_configuration_error(error: Exception, api_key: str) -> RuntimeError:
+    if isinstance(error, requests.HTTPError) and error.response is not None:
+        detail = f"Kimi HTTP {error.response.status_code}: {error.response.text.strip()}"
+    elif isinstance(error, requests.Timeout):
+        detail = "Kimi 请求超时，请稍后重试。"
+    elif isinstance(error, requests.RequestException):
+        detail = f"Kimi 连接失败：{error}"
+    else:
+        detail = str(error)
+    return RuntimeError(detail.replace(api_key, "[已隐藏]")[:2000])
+
+
+def list_kimi_models(api_key: str) -> list[str]:
+    response = None
+    try:
+        response = requests.get(KIMI_MODELS_URL, headers={"Authorization": f"Bearer {api_key}"}, timeout=(10, 30))
+        response.raise_for_status()
+        data = response.json()
+        rows = data.get("data") if isinstance(data, dict) else None
+        if not isinstance(rows, list):
+            raise RuntimeError("Kimi 模型列表响应格式不正确。")
+        models = sorted({item["id"].strip() for item in rows if isinstance(item, dict) and isinstance(item.get("id"), str) and item["id"].strip()})
+        if not models:
+            raise RuntimeError("Kimi 未返回可用模型，请检查当前密钥的模型权限。")
+        return models
+    except Exception as exc:
+        raise kimi_configuration_error(exc, api_key) from exc
+    finally:
+        if response is not None:
+            response.close()
+
+
+def read_kimi_response(
+    response: requests.Response,
+    on_progress: Callable[[str], None] | None = None,
+    *,
+    max_seconds: int = KIMI_MAX_STREAM_SECONDS,
+) -> str:
     if "text/event-stream" not in response.headers.get("Content-Type", "").lower():
         data = response.json()
         content = data["choices"][0]["message"].get("content")
@@ -864,8 +1034,8 @@ def read_kimi_response(response: requests.Response, on_progress: Callable[[str],
     started_at = last_progress_at = time.monotonic()
     for line in response.iter_lines(decode_unicode=True):
         now = time.monotonic()
-        if now - started_at > KIMI_MAX_STREAM_SECONDS:
-            raise RuntimeError(f"Kimi 分析超过 {KIMI_MAX_STREAM_SECONDS} 秒，已停止本次请求，请稍后手动重试。")
+        if now - started_at > max_seconds:
+            raise RuntimeError(f"Kimi 响应超过 {max_seconds} 秒，已停止本次请求，请稍后手动重试。")
         if not line or not line.startswith("data:"):
             continue
         event_text = line[5:].strip()
@@ -905,7 +1075,35 @@ def read_kimi_response(response: requests.Response, on_progress: Callable[[str],
     return content
 
 
-def call_kimi(api_key: str, model: str, prompt: str, *, on_progress: Callable[[str], None] | None = None) -> str:
+def test_kimi_model(api_key: str, model: str) -> dict[str, Any]:
+    response = None
+    started_at = time.monotonic()
+    try:
+        response = requests.post(
+            KIMI_BASE_URL,
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "model": model,
+                "messages": [{"role": "user", "content": "请只回复 OK。"}],
+                "temperature": 1,
+                "max_tokens": 4096,
+                "stream": True,
+            },
+            stream=True,
+            timeout=(10, 30),
+        )
+        response.raise_for_status()
+        reply = read_kimi_response(response, max_seconds=KIMI_MODEL_TEST_SECONDS)
+        return {"ok": True, "model": model, "reply": reply.replace(api_key, "[已隐藏]")[:4000], "elapsed_ms": round((time.monotonic() - started_at) * 1000)}
+    except Exception as exc:
+        raise kimi_configuration_error(exc, api_key) from exc
+    finally:
+        if response is not None:
+            response.close()
+
+
+def call_kimi(api_key: str, model: str, prompt: str, *, on_progress: Callable[[str], None] | None = None,
+              on_prompt: Callable[[str], None] | None = None) -> str:
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -935,6 +1133,8 @@ def call_kimi(api_key: str, model: str, prompt: str, *, on_progress: Callable[[s
         payload["messages"] = [*base_payload["messages"], {"role": "user", "content": candidate_prompt}]
         response = None
         try:
+            if on_prompt:
+                on_prompt(candidate_prompt)
             if on_progress:
                 on_progress(f"Kimi 发送长度：{len(candidate_prompt)} 字符，等待流式响应")
             response = requests.post(KIMI_BASE_URL, headers=headers, json=payload, stream=True, timeout=(10, 90))
@@ -974,10 +1174,9 @@ def build_prompt_payload(
     preset: str | None = None,
 ) -> dict[str, Any]:
     target_data = collect_target_contents(date_text, targets)
-    missing = [item["label"] for item in target_data if item["exists"] != "true"]
-    if missing:
-        raise RuntimeError(f"以下标签尚未抓取成功：{'、'.join(missing)}")
+    validate_target_data(target_data)
     preset_key = resolve_prompt_preset(preset)
+    context = analysis_context(date_text, preset_key, target_data)
     prompt = build_prompt(
         date_text,
         targets,
@@ -985,6 +1184,8 @@ def build_prompt_payload(
         preset=preset_key,
         max_chars=None,
         per_target_limit=None,
+        target_data=target_data,
+        context=context,
     )
     return {
         "date": date_text,
@@ -992,15 +1193,84 @@ def build_prompt_payload(
         "prompt": prompt,
         "preset": preset_key,
         "available_count": len(target_data),
+        "target_data": target_data,
+        "context": context,
     }
 
 
-def save_analysis(date_text: str, slug: str, content: str) -> str:
+def atomic_write(path: Path, content: str, encoding: str = "utf-8") -> None:
+    temporary = path.with_name(f"{path.name}.{uuid.uuid4().hex}.tmp")
+    try:
+        temporary.write_text(content, encoding=encoding, newline="\n")
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def save_analysis(date_text: str, slug: str, content: str, metadata: dict[str, Any] | None = None) -> str:
     safe_slug = re.sub(r"[^a-z0-9-]+", "-", slug.lower()).strip("-") or "analysis"
-    path = DATA_ROOT / date_text / f"kimi-analysis-{safe_slug}.md"
+    path = DATA_ROOT / date_text / f"kimi-analysis-{safe_slug}-{uuid.uuid4().hex}.md"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8-sig", newline="\n")
+    atomic_write(path, content, "utf-8-sig")
+    record = {
+        **(metadata or {}), "id": path.name, "date": date_text,
+        "analysis": content, "analysis_file": path.name, "legacy": False,
+    }
+    atomic_write(path.with_suffix(".json"), json.dumps(record, ensure_ascii=False, indent=2))
     return path.name
+
+
+def read_analysis(date_text: str, record_id: str) -> dict[str, Any]:
+    if not re.fullmatch(r"kimi-analysis-[a-z0-9-]+\.md", record_id):
+        raise ValueError("非法分析记录标识")
+    path = (DATA_ROOT / date_text / record_id).resolve()
+    if path.parent != (DATA_ROOT / date_text).resolve() or not path.is_file():
+        raise FileNotFoundError("分析记录不存在")
+    sidecar = path.with_suffix(".json")
+    if sidecar.is_file():
+        record = json.loads(sidecar.read_text(encoding="utf-8"))
+        if not isinstance(record, dict) or record.get("id") != record_id or record.get("date") != date_text:
+            raise ValueError("分析记录索引损坏")
+        if not isinstance(record.get("analysis"), str):
+            raise ValueError("分析记录正文损坏")
+        for key in ("model", "preset", "generated_at", "prompt"):
+            if key in record and not isinstance(record[key], str):
+                raise ValueError("分析记录索引损坏")
+        targets = record.get("targets", [])
+        context = record.get("context", {})
+        if (not isinstance(targets, list)
+                or any(not isinstance(target, str) or target not in TARGETS for target in targets)
+                or not isinstance(context, dict)
+                or any(not isinstance(value, str) for value in context.values())):
+            raise ValueError("分析记录索引损坏")
+        return record
+    if re.search(r"-[0-9a-f]{32}\.md$", record_id):
+        raise FileNotFoundError("分析记录未完整保存")
+    content = path.read_text(encoding="utf-8-sig")
+    slug = path.stem.removeprefix("kimi-analysis-")
+    targets = TARGET_ORDER if slug == "all" else [part for part in slug.split("-") if part in TARGETS]
+    title = content.splitlines()[0].strip() if content.strip() else ""
+    title_time = title if re.fullmatch(r"\d{2}-\d{2} \d{2}:\d{2}", title) else f"{date_text[5:]} 时间未知"
+    preset = "open" if title_time.endswith("09:25") else "close" if title_time.endswith("15:00") else "intraday" if len(targets) == 4 else "default"
+    return {
+        "id": record_id, "date": date_text, "analysis": content, "analysis_file": record_id,
+        "legacy": True, "targets": targets, "preset": preset, "model": "旧版未记录",
+        "prompt": "", "generated_at": "", "context": {
+            "title_time": title_time, "capture_start": "", "capture_end": "", "generated_at": "",
+            "time_note": "旧版记录未保存输入快照和模型信息。",
+        },
+    }
+
+
+def analysis_history(date_text: str) -> list[dict[str, Any]]:
+    records = []
+    for path in (DATA_ROOT / date_text).glob("kimi-analysis-*.md"):
+        try:
+            record = read_analysis(date_text, path.name)
+        except (ValueError, OSError):
+            continue
+        records.append({key: record.get(key) for key in ("id", "date", "preset", "model", "generated_at", "context", "targets", "legacy")})
+    return sorted(records, key=lambda item: (item["generated_at"] or "", item["id"]), reverse=True)
 
 
 def create_job(job_type: str, title: str, payload: dict[str, Any]) -> str:
@@ -1115,6 +1385,13 @@ def start_fetch_job(date_text: str, targets: list[str]) -> str:
                 output = DATA_ROOT / date_text / TARGETS[target]["file"]
                 if not output.is_file() or output.stat().st_size == 0:
                     raise RuntimeError(f"{label}未生成有效数据文件")
+                try:
+                    content = sanitize_text(output.read_text(encoding="utf-8-sig"))
+                except (OSError, UnicodeError) as exc:
+                    raise RuntimeError(f"{label}资料读取失败，请重新抓取") from exc
+                quality = data_quality(content, date_text, target)
+                if not quality["usable"]:
+                    raise RuntimeError(f"{label}：{quality['quality_message']}")
 
         try:
             with ThreadPoolExecutor(max_workers=max(1, min(4, len(targets)))) as executor:
@@ -1160,13 +1437,15 @@ def start_analyze_job(
     prompt_override: str | None = None,
     preset: str | None = None,
 ) -> str:
-    job_id = create_job("analyze", f"{date_text} Kimi解析 {format_target_labels(targets)}", {"date": date_text, "targets": targets})
+    job_id = create_job("analyze", f"{date_text} Kimi解析 {format_target_labels(targets)}", {"date": date_text, "targets": targets, "preset": resolve_prompt_preset(preset)})
 
     def worker() -> None:
         target_data: list[dict[str, str]] = []
         prompt = ""
-        resolved_model = (model or "").strip() or DEFAULT_MODEL
+        started_at = time.monotonic()
+        resolved_model = DEFAULT_MODEL
         try:
+            resolved_model = (model or "").strip() or DEFAULT_MODEL
             resolved_key = resolve_kimi_key(api_key)
             if not resolved_key:
                 raise RuntimeError("未配置 Kimi API Key。请在左侧填写后保存，或设置环境变量 MOONSHOT_API_KEY。")
@@ -1176,27 +1455,33 @@ def start_analyze_job(
             for target in targets:
                 set_job_target_status(job_id, target, "reading")
 
-            target_data = collect_target_contents(date_text, targets)
-            missing = [item["label"] for item in target_data if item["exists"] != "true"]
-            if missing:
-                raise RuntimeError(f"以下标签尚未抓取成功：{'、'.join(missing)}")
-
-            prompt = build_prompt(
-                date_text,
-                targets,
-                prompt_override=prompt_override,
-                preset=preset,
-                max_chars=None,
-                per_target_limit=None,
-            )
+            prepared = build_prompt_payload(date_text, targets, prompt_override, preset)
+            target_data = prepared["target_data"]
+            prompt = prepared["prompt"]
             append_job_log(job_id, f"提示词长度：{len(prompt)} 字符")
             append_job_log(job_id, "调用 Kimi API（流式接收）")
             for target in targets:
                 set_job_target_status(job_id, target, "analyzing")
 
-            analysis = call_kimi(resolved_key, resolved_model, prompt, on_progress=lambda message: append_job_log(job_id, message))
+            def remember_prompt(candidate: str) -> None:
+                nonlocal prompt
+                prompt = candidate
+
+            analysis = call_kimi(resolved_key, resolved_model, prompt,
+                                 on_progress=lambda message: append_job_log(job_id, message),
+                                 on_prompt=remember_prompt)
+            generated_at = now_text()
+            prepared["context"]["generated_at"] = generated_at
             slug = "all" if targets == TARGET_ORDER else "-".join(targets)
-            file_name = save_analysis(date_text, slug, analysis)
+            metadata = {
+                "schema_version": 1, "preset": prepared["preset"], "model": resolved_model,
+                "targets": targets, "generated_at": generated_at, "context": prepared["context"],
+                "prompt": prompt, "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
+                "prompt_version": hashlib.sha256((prompt_system_text(prepared["preset"]) + "\n" + "\n".join(prompt_requirements_summary(prepared["preset"], "", targets)) + "\n" + str(PROMPT_PRESETS[prepared["preset"]])).encode("utf-8")).hexdigest(),
+                "inputs": [{key: item.get(key) for key in ("target", "file", "data_date", "captured_at", "row_count", "quality", "sha256")} for item in target_data],
+                "elapsed_ms": round((time.monotonic() - started_at) * 1000),
+            }
+            file_name = save_analysis(date_text, slug, analysis, metadata)
             append_job_log(job_id, f"解析结果已保存：{file_name}")
             for target in targets:
                 set_job_target_status(job_id, target, "completed")
@@ -1211,6 +1496,8 @@ def start_analyze_job(
                     "analysis": analysis,
                     "model": resolved_model,
                     "analysis_file": file_name,
+                    "record_id": file_name,
+                    "context": prepared["context"],
                     "preset": resolve_prompt_preset(preset),
                 },
             )
@@ -1243,12 +1530,28 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path == "/":
             return self._send_html()
+        assets = {
+            "/assets/workspace.css": ("workspace.css", "text/css; charset=utf-8"),
+            "/assets/app-icon.ico": ("assets/app-icon.ico", "image/x-icon"),
+            "/assets/app-icon.png": ("assets/app-icon.png", "image/png"),
+        }
+        if parsed.path in assets:
+            relative_path, content_type = assets[parsed.path]
+            body = (INDEX_HTML.parent / relative_path).read_bytes()
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if parsed.path == "/api/state":
             return self._handle_state(parsed.query)
         if parsed.path == "/api/settings":
             return self._handle_settings()
         if parsed.path == "/api/job":
             return self._handle_job(parsed.query)
+        if parsed.path in {"/api/history", "/api/analysis"}:
+            return self._handle_history(parsed.query, detail=parsed.path == "/api/analysis")
         self.send_error(HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:  # noqa: N802
@@ -1261,6 +1564,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._handle_analyze()
         if parsed.path == "/api/settings":
             return self._handle_save_settings()
+        if parsed.path == "/api/models":
+            return self._handle_model_configuration()
+        if parsed.path == "/api/model-test":
+            return self._handle_model_configuration(test_model=True)
         self.send_error(HTTPStatus.NOT_FOUND)
 
     def log_message(self, fmt: str, *args: Any) -> None:
@@ -1299,19 +1606,35 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError as exc:
             return self._send_json({"error": str(exc)}, status=400)
         settings = load_settings()
+        target_data = collect_target_contents(current, TARGET_ORDER)
         self._send_json(
             {
                 "currentDate": current,
                 "dates": sorted(set([current, *dates]), reverse=True),
                 "availableTargets": [item["target"] for item in available_files(current) if item["target"] in TARGETS],
                 "generatedAt": now_text(),
+                "today": normalize_date(None),
+                "targetData": target_data,
+                "history": analysis_history(current),
                 "settings": {
                     "kimiModel": settings["kimi_model"],
                     "hasKimiKey": bool(settings["kimi_key"]),
+                    "hasEffectiveKimiKey": bool(resolve_kimi_key(None, settings["kimi_key"])),
                     "kimiKeyMask": masked_key(settings["kimi_key"]) if settings["kimi_key"] else "",
                 },
             }
         )
+
+    def _handle_history(self, query: str, *, detail: bool = False) -> None:
+        try:
+            params = parse_qs(query)
+            date_text = normalize_date(params.get("date", [""])[0])
+            result = read_analysis(date_text, params.get("id", [""])[0]) if detail else {"date": date_text, "records": analysis_history(date_text)}
+            self._send_json(result)
+        except FileNotFoundError as exc:
+            self._send_json({"error": str(exc)}, status=404)
+        except (ValueError, OSError) as exc:
+            self._send_json({"error": str(exc)}, status=400)
 
     def _handle_settings(self) -> None:
         settings = load_settings()
@@ -1319,6 +1642,7 @@ class Handler(BaseHTTPRequestHandler):
             {
                 "kimiModel": settings["kimi_model"],
                 "hasKimiKey": bool(settings["kimi_key"]),
+                "hasEffectiveKimiKey": bool(resolve_kimi_key(None, settings["kimi_key"])),
                 "kimiKeyMask": masked_key(settings["kimi_key"]) if settings["kimi_key"] else "",
             }
         )
@@ -1336,11 +1660,37 @@ class Handler(BaseHTTPRequestHandler):
                     "ok": True,
                     "kimiModel": settings["kimi_model"],
                     "hasKimiKey": bool(settings["kimi_key"]),
+                    "hasEffectiveKimiKey": bool(resolve_kimi_key(None, settings["kimi_key"])),
                     "kimiKeyMask": masked_key(settings["kimi_key"]) if settings["kimi_key"] else "",
                 }
             )
         except Exception as exc:
             self._send_json({"error": str(exc)}, status=400)
+
+    def _handle_model_configuration(self, *, test_model: bool = False) -> None:
+        try:
+            payload = self._read_json()
+            if not isinstance(payload, dict):
+                raise ValueError("模型配置请求必须使用 JSON 对象。")
+            api_key = payload.get("api_key", "")
+            if api_key is None:
+                api_key = ""
+            if not isinstance(api_key, str):
+                raise ValueError("Kimi API Key 必须为文本。")
+            settings = load_settings()
+            api_key = resolve_kimi_key(api_key, settings["kimi_key"])
+            if not api_key:
+                raise ValueError("请先输入或保存 Kimi API Key。")
+            model = payload.get("model", settings["kimi_model"])
+            if test_model and (not isinstance(model, str) or not model.strip()):
+                raise ValueError("请选择要测试的模型。")
+        except Exception as exc:
+            return self._send_json({"error": str(exc)}, status=400)
+        try:
+            result = test_kimi_model(api_key, model.strip()) if test_model else {"models": list_kimi_models(api_key)}
+            self._send_json(result)
+        except Exception as exc:
+            self._send_json({"error": str(exc)}, status=502)
 
     def _handle_prompt(self) -> None:
         try:
@@ -1383,6 +1733,9 @@ class Handler(BaseHTTPRequestHandler):
     def _handle_analyze(self) -> None:
         try:
             payload = self._read_json()
+            for key in ("api_key", "model", "preset", "prompt_override"):
+                if payload.get(key) is not None and not isinstance(payload[key], str):
+                    raise ValueError(f"{key} 必须为字符串")
             date_text = normalize_date(payload.get("date"))
             targets = request_targets(payload)
             settings = load_settings()

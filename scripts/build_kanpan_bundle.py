@@ -13,7 +13,7 @@ ENTRY = ROOT / "scripts" / "run_kanpan_tool.py"
 DIST_DIR = ROOT / "dist"
 BUILD_DIR = ROOT / "build"
 APP_NAME = "AstockKanpan"
-ICON_FILE = ROOT / "scripts" / "assets" / "astock-kanpan.ico"
+ICON_FILE = ROOT / "kanpan-tool" / "assets" / "app-icon.ico"
 RUNTIME_DIRS = [
     ROOT / "kanpan-tool",
     ROOT / "market-overview-exporter",
@@ -62,7 +62,8 @@ def host_target() -> str:
 
 def add_data_arg(path: Path) -> str:
     separator = ";" if os.name == "nt" else ":"
-    return f"{path}{separator}{path.name}"
+    destination = path.name if path.is_dir() else "."
+    return f"{path}{separator}{destination}"
 
 
 def module_available(module_name: str) -> bool:
@@ -122,6 +123,8 @@ def build_bundle(
         "--noconfirm",
         "--clean",
         "--onefile",
+        "--python-option",
+        "X utf8",
         "--name",
         app_name,
         "--distpath",

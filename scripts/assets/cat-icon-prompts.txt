@@ -1,0 +1,11 @@
+生成方式：内置 image_gen；未使用 CLI 或项目的 Kimi 密钥。
+参考：用户提供的灰白长毛猫照片，仅作为猫咪身份特征参考；原照片不随发布包分发。
+应用输出：astock-cat-app.png；程序使用 kanpan-tool/assets/app-icon.ico 与 app-icon.png。
+安装输出：astock-cat-installer.png、astock-cat-installer.ico。
+ICO 技术转换保留透明通道，导出 16、24、32、48、64、128、256 像素。
+
+应用图标最终提示词：
+Use case: logo-brand. Create a polished Windows desktop application icon based on the specific cat in the reference photograph. Reference image role: identity reference only. Preserve this cat's fluffy gray-and-white long hair, gray ears and crown, broad white inverted-V facial blaze, round dark eyes, small pink nose, and very full white chest. Close-up head and upper chest, centered, both ears fully visible, friendly calm slightly curious expression, looking subtly toward the viewer. Premium softly sculpted illustration, simplified bold masses and clear silhouette so it remains recognizable at 32px and 48px, with tasteful detailed fur only at large size. The application uses charcoal black and warm orange accents: place the cat portrait on a near-black charcoal rounded-square tile with a very fine muted warm-gold rim, no busy graphics. The tile fills about 90 percent of the square canvas, outside the rounded tile is genuinely transparent. Square 1024x1024 composition. NO text, NO letters, NO chart, NO download arrow, NO extra animals, NO interior-room background, NO watermark, NO mockup, exactly ONE finished app icon.
+
+安装图标最终提示词：
+Use case: precise-object-edit. Asset type: Windows installer executable icon. Edit the provided finished cat application icon to make a matching installation icon. Preserve the exact same cat identity, face, eyes, gray and white fluffy fur, composition, charcoal rounded-square tile and warm gold border. Add just one small polished warm-orange circular badge at the lower right containing a bold simple white downward arrow into a short tray, recognizable at 32px, about 27 percent of the tile width, inside the canvas. This badge is the only meaningful change. The cat face must remain completely unobstructed. Clean smooth edges, simplify any stray glow pixels outside the outer rounded tile; outside the tile and badge must be truly transparent. Exactly one square finished icon, no text, no letters, no watermark, no mockup.

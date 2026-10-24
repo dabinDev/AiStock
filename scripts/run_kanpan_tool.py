@@ -103,6 +103,10 @@ def runtime_env() -> dict[str, str]:
     env = sanitize_proxy_env(os.environ.copy())
     env["ASTOCK_APP_ROOT"] = str(app_root())
     env["ASTOCK_BUNDLE_ROOT"] = str(runtime_root())
+    if getattr(sys, "frozen", False) and not env.get("PLAYWRIGHT_CHROME_EXECUTABLE", "").strip():
+        browser = Path(sys.executable).resolve().parent / "browser" / "chrome.exe"
+        if browser.is_file():
+            env["PLAYWRIGHT_CHROME_EXECUTABLE"] = str(browser)
     return env
 
 
@@ -246,7 +250,16 @@ def copy_to_clipboard(root: tk.Tk, text: str) -> None:
 
 def open_launcher_window(port: int, process: subprocess.Popen[str]) -> int:
     address = f"http://127.0.0.1:{port}/"
+    if os.name == "nt":
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Astock.Kanpan")
     root = tk.Tk()
+    icon_root = runtime_root() / "kanpan-tool" / "assets"
+    if os.name == "nt":
+        root.iconbitmap(default=str(icon_root / "app-icon.ico"))
+    else:
+        root._app_icon = tk.PhotoImage(file=str(icon_root / "app-icon.png"))
+        root.iconphoto(True, root._app_icon)
     root.title("A股交易台")
     root.geometry("480x220")
     root.resizable(False, False)
