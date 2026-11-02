@@ -1,4 +1,0 @@
-interface:
-  display_name: "东方财富短线采集"
-  short_description: "按东方财富网页接口抓取六类短线股池并生成日期目录与汇总文件"
-  default_prompt: "使用 $eastmoney-shortline-exporter 按东方财富网页接口导出短线数据，生成日期文件夹并更新根目录汇总文件。"

@@ -21,7 +21,7 @@ from matplotlib import font_manager
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
-SKILL_SCRIPT = ROOT / "eastmoney-shortline-exporter" / "scripts" / "fetch_eastmoney_shortline.py"
+SKILL_SCRIPT = ROOT / "eastmoney-shortline" / "scripts" / "fetch_eastmoney_shortline.py"
 SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
 
 

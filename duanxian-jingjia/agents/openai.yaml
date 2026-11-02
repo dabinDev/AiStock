@@ -1,0 +1,4 @@
+interface:
+  display_name: "短线竞价"
+  short_description: "开盘竞价阶段更新5日竞价、竞价异动和竞价抢筹文件。"
+  default_prompt: "Use $duanxian-jingjia to update today's jingjia and jjyd files under data/YYYY-MM-DD/."

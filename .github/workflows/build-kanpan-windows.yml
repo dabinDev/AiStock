@@ -1,0 +1,65 @@
+name: Build Kanpan Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - new-v
+    paths:
+      - "scripts/build_kanpan_bundle.py"
+      - "scripts/build_kanpan_exe.py"
+      - "scripts/publish_kanpan_release.py"
+      - "scripts/run_kanpan_tool.py"
+      - "kanpan-tool/**"
+      - "market-overview-exporter/**"
+      - "duanxian-jingjia-exporter/**"
+      - "duanxian-workflow/**"
+      - "duanxian-yidong-pool/**"
+      - ".github/workflows/build-kanpan-windows.yml"
+      - ".github/workflows/build-kanpan-linux.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller requests playwright
+          python -c "import sys, importlib.metadata as md, PyInstaller; print('python=', sys.executable); print('pyinstaller_module=', PyInstaller.__file__); print('pyinstaller_version=', md.version('pyinstaller')); print('requests_version=', md.version('requests')); print('playwright_version=', md.version('playwright'))"
+
+      - name: Build Windows bundle
+        shell: pwsh
+        run: |
+          python scripts/build_kanpan_exe.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AstockKanpan-windows-x64
+          path: dist/AstockKanpan.exe
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Publish release asset
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python scripts/publish_kanpan_release.py `
+            --asset dist/AstockKanpan.exe `
+            --asset-name AstockKanpan.exe
